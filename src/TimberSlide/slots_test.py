@@ -133,12 +133,12 @@ class SlotTest(unittest.TestCase):
         assert parseSlot(":2001", repo) == set([Slot("2000"), Slot("2001")])
         assert parseSlot(":200002", repo) == set([Slot("200001"), Slot("200002")])
         assert parseSlot(":20000102", repo) == set([Slot("20000101"), Slot("20000102")])
-        assert parseSlot(":2000010101", repo) == set([Slot("2000010100"), Slot("2000010101")])
+        assert parseSlot(":2000010101", repo) == repo.minslot().rangeto("2000010101")
         assert parseSlot("2099:", repo) == set([Slot("2099"), Slot("2100")])
         assert parseSlot("210011:", repo) == set([Slot("210011"), Slot("210012")])
         assert parseSlot("21001230:", repo) == set([Slot("21001230"), Slot("21001231")])
-        assert parseSlot("2100123122:", repo) == set([Slot("2100123122"), Slot("2100123123")])
-        assert parseSlot(":", repo) == Slot("2000010100").rangeto("2100123123")
+        assert parseSlot("2100123122:", repo) == Slot("2100123122").rangeto(repo.maxslot())
+        assert parseSlot(":", repo) == repo.minslot().rangeto(repo.maxslot())
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testSlots']

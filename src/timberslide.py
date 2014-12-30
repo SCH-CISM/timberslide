@@ -77,9 +77,12 @@ USAGE
         
         # merge slots and give feedback
         args.repository = S3Repository(args.repository)
-        args.slot = [parseSlot(s, args.repository) for s in args.slot]
-        args.slot = sorted([str(s) for s in mergeSlotSets(args.slot)], reverse=True)
-        print "Slots to process: " + str(args.slot)
+        args.slot = mergeSlotSets([parseSlot(s, args.repository) for s in args.slot])
+        print "Slots to process: "
+        print "\t" + ", ".join(sorted([str(s) for s in args.slot], reverse=True))
+        print "Files to process:"
+        for k in args.repository.slotkeys(args.slot):
+            print "\ts3://" + args.repository.bucket + '/' + k.name
 
         return 0
     except KeyboardInterrupt:

@@ -7,6 +7,7 @@ Created on 30/12/2014
 from re import compile
 from boto.s3.connection import S3Connection
 from slots import Slot
+from boto.s3.prefix import Prefix
 
 _bucketregex = compile("^s3://(?P<bucket>[^/]+)/(?P<prefix>.*?)/?$")
 _yregex = compile("/(?P<val>[0-9]{4})/$")
@@ -101,3 +102,26 @@ class S3Repository:
             self._maxslot = Slot(year+month+day+hour)
             print "Biggest slot in repository is "+str(self._maxslot)
         return self._maxslot
+    
+    def slotprefix(self, slot):
+        retval = self.prefix + format(slot.year(), "04") + '/'
+        if slot.month() is None:
+            return retval
+        retval = retval + format(slot.month(), "02") + '/'
+        if slot.day() is None:
+            return retval
+        retval = retval + format(slot.day(), "02") + '/'
+        if slot.hour() is None:
+            return retval
+        return retval + format(slot.hour(), "02") + '/'
+    
+    def slotkeys(self, slots):
+        self._open()
+        retval = set()
+        for slot in slots:
+            for key in self._bucket.list(self.slotprefix(slot)):
+                retval.add(key)
+        return sorted([k for k in retval], key=_getname, reverse=True)
+    
+def _getname(key):
+    return key.name
