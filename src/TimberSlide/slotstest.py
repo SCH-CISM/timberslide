@@ -54,6 +54,14 @@ class SlotTest(unittest.TestCase):
         assert Slot("20141230").childrenend() == Slot("2014123023")
         assert Slot("2014123010").childrenend() is None
 
+    def testSlotChildren(self):
+        assert Slot("2014").children() == set([Slot("2014"+format(i+1, "02"))
+                                               for i in range(12)])
+        assert Slot("201412").children() == set([Slot("201412"+format(i+1, "02"))
+                                               for i in range(31)])
+        assert Slot("20141201").children() == set([Slot("20141201"+format(i, "02"))
+                                               for i in range(24)])
+
     def testSlotAdd(self):
         assert Slot("2014") + 1 == Slot("2015")
         assert Slot("2014") - 1 == Slot("2013")

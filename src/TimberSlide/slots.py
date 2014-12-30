@@ -66,6 +66,13 @@ class Slot:
         else:
             return None
         
+    def children(self):
+        if len(self) == 10:
+            return None
+        retval = self.childrenstart().rangeto(self.childrenend()-1)
+        retval.add(self.childrenend())
+        return retval
+        
     def rangeto(self, other):
         if not isinstance(other, Slot):
             other = Slot(other)
