@@ -16,6 +16,10 @@ import os
 
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
+from TimberSlide.slots import parseSlot, mergeSlotSets
+from test.test_support import args_from_interpreter_flags
+from sys import argv
+from TimberSlide.s3repository import S3Repository
 
 __all__ = []
 __version__ = 0.1
@@ -63,32 +67,20 @@ USAGE
     try:
         # Setup argument parser
         parser = ArgumentParser(description=program_license, formatter_class=RawDescriptionHelpFormatter)
-        parser.add_argument("-c", "--config", dest="config", help="path to the configuration file [default: %(default)s]", default="~/.timberslide")
+        #parser.add_argument("-c", "--config", dest="config", help="path to the configuration file [default: %(default)s]", default="~/.timberslide")
         parser.add_argument('-v', '--version', action='version', version=program_version_message)
-        parser.add_argument('slots', help='time slots or ranges of time slots to load, either <slot> or <slot>-<slot> for an inclusive range, <slot>- for all slots above and -<slot> for all slots below the provided one; each slot should be in YYYY, YYYYMM, YYYYMMDD or YYYYMMDDHH format (UTC)')
+        parser.add_argument('-r', '--repository', help='S3 directory where the data is located', default='s3://nevermind-logs/export/')
+        parser.add_argument('slot', nargs='+', help='time slots or ranges of time slots to load, either <slot> or <slot>-<slot> for an inclusive range, <slot>- for all slots above and -<slot> for all slots below the provided one; each slot should be in YYYY, YYYYMM, YYYYMMDD or YYYYMMDDHH format (UTC)')
 
         # Process arguments
         args = parser.parse_args()
+        
+        # merge slots and give feedback
+        args.repository = S3Repository(args.repository)
+        args.slot = [parseSlot(s, args.repository) for s in args.slot]
+        args.slot = sorted([str(s) for s in mergeSlotSets(args.slot)], reverse=True)
+        print "Slots to process: " + str(args.slot)
 
-        paths = args.paths
-        verbose = args.verbose
-        recurse = args.recurse
-        inpat = args.include
-        expat = args.exclude
-
-        if verbose > 0:
-            print("Verbose mode on")
-            if recurse:
-                print("Recursive mode on")
-            else:
-                print("Recursive mode off")
-
-        if inpat and expat and inpat == expat:
-            raise CLIError("include and exclude pattern are equal! Nothing will be processed.")
-
-        for inpath in paths:
-            ### do something with inpath ###
-            print(inpath)
         return 0
     except KeyboardInterrupt:
         ### handle keyboard interrupt ###
@@ -102,10 +94,9 @@ USAGE
         return 2
 
 if __name__ == "__main__":
-    if DEBUG:
-        sys.argv.append("-h")
-        sys.argv.append("-v")
-        sys.argv.append("-r")
+#     if DEBUG:
+#         sys.argv.append("-h")
+#         sys.argv.append("-v")
     if TESTRUN:
         import doctest
         doctest.testmod()

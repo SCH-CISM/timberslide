@@ -47,6 +47,13 @@ class Slot:
             return None
         else:
             return Slot(self.slot[0:len(self)-2])
+        
+    def parents(self):
+        par = self.parent()
+        if par is None:
+            return set()
+        else:
+            return set([par]) | par.parents()
     
     def childrenstart(self):
         if len(self) == 4 or len(self) == 6:
@@ -176,3 +183,63 @@ def _rangeto(start, end):
             return (start.rangeto(startpar.childrenend()) 
                     | (startpar+1).rangeto(endpar-1)
                     | endpar.childrenstart().rangeto(end))
+
+def parseSlot(text, repo):
+    text = text.split(':')
+    if len(text) == 1:
+        return set([Slot(text[0])])
+    elif len(text) == 2:
+        if len(text[0]) == 0:
+            text[0] = repo.minslot()
+            if len(text[1]) > 0:
+                while len(text[0]) > len(text[1]):
+                    text[0] = text[0].parent()
+        else:
+            text[0] = Slot(text[0])
+        if len(text[1]) == 0:
+            text[1] = repo.maxslot()
+            if len(text[0]) > 0:
+                while len(text[1]) > len(text[0]):
+                    text[1] = text[1].parent()
+        else:
+            text[1] = Slot(text[1])
+        return text[0].rangeto(text[1])
+    else:
+        raise ValueError('slot \"'+text+'\" is invalid')
+
+def mergeSlotSets(slotSetList):
+    # merge entries
+    allSlots = set()
+    for slotSet in slotSetList:
+        allSlots.update(slotSet)
+        
+    # remove entries with parents already in the list
+    redundant = set()
+    for slot in allSlots:
+        if not allSlots.isdisjoint(slot.parents()):
+            redundant.add(slot)
+    allSlots.difference_update(redundant)
+    redundant.clear()
+    
+    # consolidate entries by using parent if all of its children 
+    # are present
+    parents = set()
+    done = False
+    while not done:
+        done = True
+        for slot in allSlots:
+            par = slot.parent()
+            if par is not None and not par in parents:
+                siblings = par.children()
+                if siblings.issubset(allSlots):
+                    done = False
+                    parents.add(par)
+                    redundant.update(siblings)
+        allSlots.difference_update(redundant)
+        redundant.clear()
+        allSlots.update(parents)
+        parents.clear()
+    
+    # we're done
+    return allSlots
+    

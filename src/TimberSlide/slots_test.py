@@ -42,6 +42,13 @@ class SlotTest(unittest.TestCase):
         assert Slot("20141230").parent() == Slot("201412")
         assert Slot("2014123010").parent() == Slot("20141230")
 
+    def testSlotParents(self):
+        assert Slot("2014").parents() == set()
+        assert Slot("201412").parents() == set([Slot("2014")])
+        assert Slot("20141230").parents() == set([Slot("201412"), Slot("2014")])
+        assert Slot("2014123010").parents() == set([Slot("20141230"), Slot("201412"), 
+                                                    Slot("2014")])
+
     def testSlotChildrenStart(self):
         assert Slot("2014").childrenstart() == Slot("201401")
         assert Slot("201412").childrenstart() == Slot("20141201")
