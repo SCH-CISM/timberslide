@@ -80,9 +80,10 @@ USAGE
         args.slot = mergeSlotSets([parseSlot(s, args.repository) for s in args.slot])
         print "Slots to process: "
         print "\t" + ", ".join(sorted([str(s) for s in args.slot], reverse=True))
-        print "Files to process:"
-        for k in args.repository.slotkeys(args.slot):
-            print "\ts3://" + args.repository.bucket + '/' + k.name
+        for slot in sorted([s for s in args.slot], reverse=True):
+            print "Files found for "+str(slot)+ ":"
+            for key in args.repository.slotkeys(slot):
+                print "\ts3://" + args.repository.bucket + '/' + key.name
 
         return 0
     except KeyboardInterrupt:

@@ -7,7 +7,6 @@ Created on 30/12/2014
 from re import compile
 from boto.s3.connection import S3Connection
 from slots import Slot
-from boto.s3.prefix import Prefix
 
 _bucketregex = compile("^s3://(?P<bucket>[^/]+)/(?P<prefix>.*?)/?$")
 _yregex = compile("/(?P<val>[0-9]{4})/$")
@@ -115,9 +114,11 @@ class S3Repository:
             return retval
         return retval + format(slot.hour(), "02") + '/'
     
-    def slotkeys(self, slots):
+    def slotkeys(self, slots):            
         self._open()
         retval = set()
+        if isinstance(slots, Slot):
+            slots = [slots]
         for slot in slots:
             for key in self._bucket.list(self.slotprefix(slot)):
                 retval.add(key)
