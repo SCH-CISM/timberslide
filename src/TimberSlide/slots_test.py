@@ -5,6 +5,18 @@ Created on 30/12/2014
 '''
 import unittest
 from slots import Slot
+from s3repository import S3Repository
+from TimberSlide.slots import parseSlot
+
+class DummyS3Repository(S3Repository):
+    def __init__(self, location):
+        S3Repository.__init__(self, location)
+    
+    def minslot(self):
+        return Slot("2000010100")
+
+    def maxslot(self):
+        return Slot("2100123123")
 
 class SlotTest(unittest.TestCase):
     def testSlotComponents(self):
@@ -115,6 +127,18 @@ class SlotTest(unittest.TestCase):
         assert Slot("2014").rangeto("201502") == Slot("201401").rangeto("201502")
         assert Slot("2014").rangeto("201502") ==  Slot("201502").rangeto("2014")
         assert Slot("2014").rangeto("2017010100") == Slot("2014010100").rangeto("2017010100")
+
+    def testParseSlot(self):
+        repo = DummyS3Repository("s3://bucket/prefix")
+        assert parseSlot(":2001", repo) == set([Slot("2000"), Slot("2001")])
+        assert parseSlot(":200002", repo) == set([Slot("200001"), Slot("200002")])
+        assert parseSlot(":20000102", repo) == set([Slot("20000101"), Slot("20000102")])
+        assert parseSlot(":2000010101", repo) == set([Slot("2000010100"), Slot("2000010101")])
+        assert parseSlot("2099:", repo) == set([Slot("2099"), Slot("2100")])
+        assert parseSlot("210011:", repo) == set([Slot("210011"), Slot("210012")])
+        assert parseSlot("21001230:", repo) == set([Slot("21001230"), Slot("21001231")])
+        assert parseSlot("2100123122:", repo) == set([Slot("2100123122"), Slot("2100123123")])
+        assert parseSlot(":", repo) == Slot("2000010100").rangeto("2100123123")
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testSlots']

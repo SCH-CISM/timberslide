@@ -22,11 +22,18 @@ class S3Repository:
         self.prefix = m.group('prefix')+"/"
         self._minslot = None
         self._maxslot = None
-        self._conn = S3Connection()
-        self._bucket = self._conn.get_bucket(self.bucket)
+        self._conn = None
+        self._bucket = None
+    
+    def _open(self):
+        if self._conn is None:
+            self._conn = S3Connection()
+            self._bucket = self._conn.get_bucket(self.bucket)
     
     def minslot(self):
         if self._minslot is None:
+            self._open()
+            
             # find smallest year
             year = [int(_yregex.search(s.name).group('val')) 
                        for s in self._bucket.list(self.prefix, '/')]
@@ -61,6 +68,8 @@ class S3Repository:
     
     def maxslot(self):
         if self._maxslot is None:
+            self._open()
+
             # find smallest year
             year = [int(_yregex.search(s.name).group('val')) 
                        for s in self._bucket.list(self.prefix, '/')]
