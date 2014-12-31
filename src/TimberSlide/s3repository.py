@@ -7,7 +7,6 @@ Created on 30/12/2014
 from re import compile
 from boto.s3.connection import S3Connection
 from bz2 import BZ2Decompressor
-from csv import reader
 from slots import Slot
 
 _bucketregex = compile("^s3://(?P<bucket>[^/]+)/(?P<prefix>.*?)/?$")
@@ -160,29 +159,3 @@ class BZ2KeyIterator:
         for l in self._decomp.decompress(chunk).split('\n'):
             self._lines.append(l+'\n')
         return self.next()
-
-'''
-This class is an iterator (https://docs.python.org/2/glossary.html#term-iterator) 
-over the lines of an S3 Key object that uses BZ2KeyIterator to decompress it and parses
-each line using a CSV reader for tab-delimited fields.
-
-Could be extended in the future to handle other compression formats automatically by
-checking the extension on the key name (.bz2, .gz, etc).
-'''
-class TSVKeyIterator:
-    def __init__(self, key):
-        self.key = key
-        self._reader = reader(BZ2KeyIterator(key), delimiter='\t')
-    
-    def __iter__(self):
-        return self
-    
-    def next(self):
-        return self._reader.next()
-    
-# if __name__ == "__main__":
-#     repo = S3Repository("s3://nevermind-logs/export")
-#     k = repo.slotkeys(Slot("2014122901")).pop()
-#     fi = TSVKeyIterator(k)
-#     for i in range(10):
-#         print fi.next()

@@ -53,11 +53,12 @@ class Slot:
             return Slot(self.slot[0:len(self)-2])
         
     def parents(self):
+        retval = set()
         par = self.parent()
-        if par is None:
-            return set()
-        else:
-            return set([par]) | par.parents()
+        while par is not None:
+            retval.add(par)
+            par = par.parent()
+        return retval
     
     def childrenstart(self):
         if len(self) == 4 or len(self) == 6:
@@ -80,9 +81,11 @@ class Slot:
     def children(self):
         if len(self) == 10:
             return None
-        retval = self.childrenstart().rangeto(self.childrenend()-1)
-        retval.add(self.childrenend())
-        return retval
+        start = self.childrenstart().slot
+        end = self.childrenend().slot
+        return set([Slot(self.slot+format(x, "02")) 
+                    for x in range(int(start[len(start)-2:len(start)]),
+                                   int(end[len(end)-2:len(end)])+1)])
         
     def rangeto(self, other):
         if not isinstance(other, Slot):
