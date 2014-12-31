@@ -8,6 +8,10 @@ from datetime import datetime, timedelta
 import pytz
 from calendar import monthrange
 
+'''
+This class represents a time slot that might contain files. It is represented as a string
+in YYYY, YYYYMM, YYYYMMDD or YYYYMMDDHH formats (UTC).
+'''
 class Slot:
     def __init__(self, slot):
         self.slot = slot
@@ -151,7 +155,11 @@ class Slot:
     def __sub__(self, other):
         return self.__add__(-other)
  
- 
+'''
+Called internally by Slot.rangeto to handle the recursive resolution. 
+
+Expects two Slot instances as parameters, and returns a set of Slot instances.
+'''
 def _rangeto(start, end):
     # trivial cases
     if start == end:
@@ -184,7 +192,14 @@ def _rangeto(start, end):
                     | (startpar+1).rangeto(endpar-1)
                     | endpar.childrenstart().rangeto(end))
 
-def parseSlot(text, repo):
+'''
+Parses a slot range string in the '<slot>:<slot>' format, replacing any missing slots by the
+boundaries of existing slots in the given repository (repo) which must be a S3Repository
+instance.
+
+Returns a set of Slot instances.
+'''
+def parseSlotRange(text, repo):
     text = text.split(':')
     if len(text) == 1:
         return set([Slot(text[0])])
@@ -207,6 +222,13 @@ def parseSlot(text, repo):
     else:
         raise ValueError('slot \"'+text+'\" is invalid')
 
+'''
+Receives a list of sets of Slot instances, and consolidates all of them into a single set
+of Slot instances.
+
+The processing will ensure that the slots with the smallest length possible are used, and that
+slots contained by other slots will be removed.
+'''
 def mergeSlotSets(slotSetList):
     # merge entries
     allSlots = set()

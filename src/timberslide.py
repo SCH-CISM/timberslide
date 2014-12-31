@@ -16,9 +16,7 @@ import os
 
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
-from TimberSlide.slots import parseSlot, mergeSlotSets
-from test.test_support import args_from_interpreter_flags
-from sys import argv
+from TimberSlide.slots import parseSlotRange, mergeSlotSets
 from TimberSlide.s3repository import S3Repository
 
 __all__ = []
@@ -77,7 +75,7 @@ USAGE
         
         # merge slots and give feedback
         args.repository = S3Repository(args.repository)
-        args.slot = mergeSlotSets([parseSlot(s, args.repository) for s in args.slot])
+        args.slot = mergeSlotSets([parseSlotRange(s, args.repository) for s in args.slot])
         print "Slots to process: "
         print "\t" + ", ".join(sorted([str(s) for s in args.slot], reverse=True))
         for slot in sorted([s for s in args.slot], reverse=True):

@@ -6,7 +6,7 @@ Created on 30/12/2014
 import unittest
 from slots import Slot
 from s3repository import S3Repository
-from TimberSlide.slots import parseSlot
+from TimberSlide.slots import parseSlotRange
 
 class DummyS3Repository(S3Repository):
     def __init__(self, location):
@@ -130,15 +130,15 @@ class SlotTest(unittest.TestCase):
 
     def testParseSlot(self):
         repo = DummyS3Repository("s3://bucket/prefix")
-        assert parseSlot(":2001", repo) == set([Slot("2000"), Slot("2001")])
-        assert parseSlot(":200002", repo) == set([Slot("200001"), Slot("200002")])
-        assert parseSlot(":20000102", repo) == set([Slot("20000101"), Slot("20000102")])
-        assert parseSlot(":2000010101", repo) == repo.minslot().rangeto("2000010101")
-        assert parseSlot("2099:", repo) == set([Slot("2099"), Slot("2100")])
-        assert parseSlot("210011:", repo) == set([Slot("210011"), Slot("210012")])
-        assert parseSlot("21001230:", repo) == set([Slot("21001230"), Slot("21001231")])
-        assert parseSlot("2100123122:", repo) == Slot("2100123122").rangeto(repo.maxslot())
-        assert parseSlot(":", repo) == repo.minslot().rangeto(repo.maxslot())
+        assert parseSlotRange(":2001", repo) == set([Slot("2000"), Slot("2001")])
+        assert parseSlotRange(":200002", repo) == set([Slot("200001"), Slot("200002")])
+        assert parseSlotRange(":20000102", repo) == set([Slot("20000101"), Slot("20000102")])
+        assert parseSlotRange(":2000010101", repo) == repo.minslot().rangeto("2000010101")
+        assert parseSlotRange("2099:", repo) == set([Slot("2099"), Slot("2100")])
+        assert parseSlotRange("210011:", repo) == set([Slot("210011"), Slot("210012")])
+        assert parseSlotRange("21001230:", repo) == set([Slot("21001230"), Slot("21001231")])
+        assert parseSlotRange("2100123122:", repo) == Slot("2100123122").rangeto(repo.maxslot())
+        assert parseSlotRange(":", repo) == repo.minslot().rangeto(repo.maxslot())
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testSlots']

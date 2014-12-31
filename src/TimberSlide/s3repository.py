@@ -6,12 +6,20 @@ Created on 30/12/2014
 
 from re import compile
 from boto.s3.connection import S3Connection
+from bz2 import BZ2Decompressor
+from csv import reader
 from slots import Slot
 
 _bucketregex = compile("^s3://(?P<bucket>[^/]+)/(?P<prefix>.*?)/?$")
 _yregex = compile("/(?P<val>[0-9]{4})/$")
 _mdhregex = compile("/(?P<val>[0-9]{2})/$")
 
+'''
+This class encapsulates access to an S3 bucket and prefix where data files are stored
+using the <prefix>/<YYYY>/<MM>/<DD>/<HH>/ prefixes according to the slot.
+
+It will allow all S3 Key objects associated with a Slot set to be easily obtained.
+'''
 class S3Repository:
     def __init__(self, location):
         m = _bucketregex.match(location)
@@ -123,6 +131,58 @@ class S3Repository:
             for key in self._bucket.list(self.slotprefix(slot)):
                 retval.add(key)
         return sorted([k for k in retval], key=_getname, reverse=True)
-    
+        
+# used in S3Repository.slotkeys
 def _getname(key):
     return key.name
+
+'''
+This class is an iterator (https://docs.python.org/2/glossary.html#term-iterator) 
+over the lines of an S3 Key object that also decompresses the contents using BZ2.
+'''
+class BZ2KeyIterator:
+    def __init__(self, key, bufsize=100*1024):
+        self.key = key
+        self.bufsize = bufsize
+        self._decomp = BZ2Decompressor()
+        self._lines = []
+        
+    def __iter__(self):
+        return self
+    
+    def next(self):
+        if len(self._lines) > 0:
+            return self._lines.pop(0)
+        
+        chunk = self.key.read(self.bufsize)
+        if not chunk:
+            raise StopIteration
+        for l in self._decomp.decompress(chunk).split('\n'):
+            self._lines.append(l+'\n')
+        return self.next()
+
+'''
+This class is an iterator (https://docs.python.org/2/glossary.html#term-iterator) 
+over the lines of an S3 Key object that uses BZ2KeyIterator to decompress it and parses
+each line using a CSV reader for tab-delimited fields.
+
+Could be extended in the future to handle other compression formats automatically by
+checking the extension on the key name (.bz2, .gz, etc).
+'''
+class TSVKeyIterator:
+    def __init__(self, key):
+        self.key = key
+        self._reader = reader(BZ2KeyIterator(key), delimiter='\t')
+    
+    def __iter__(self):
+        return self
+    
+    def next(self):
+        return self._reader.next()
+    
+# if __name__ == "__main__":
+#     repo = S3Repository("s3://nevermind-logs/export")
+#     k = repo.slotkeys(Slot("2014122901")).pop()
+#     fi = TSVKeyIterator(k)
+#     for i in range(10):
+#         print fi.next()
