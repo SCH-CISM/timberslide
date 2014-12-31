@@ -30,7 +30,7 @@ the column name in 'func' to every non-None value.
 
 Will return one dict for each row, mapping column names to values.
 '''
-class TSVKeyIterator:
+class TSVIterator:
     def __init__(self, reader, func=_default_func, nonevals=_default_nonevals):
         self._reader = DictReader(reader, delimiter='\t')
         self.func = func
@@ -47,11 +47,10 @@ class TSVKeyIterator:
             elif k in self.func.keys():
                 retval[k] = self.func[k](retval[k])
         return retval
-
     
-if __name__ == "__main__":
-    repo = S3Repository("s3://nevermind-logs/export")
-    k = repo.slotkeys(Slot("2014122901")).pop()
-    fi = TSVKeyIterator(BZ2KeyIterator(k))
-    for i in range(10):
-        print fi.next()
+# if __name__ == "__main__":
+#     repo = S3Repository("s3://nevermind-logs/export")
+#     k = repo.slotkeys(Slot("2014122901")).pop()
+#     fi = TSVIterator(BZ2KeyIterator(k))
+#     for i in range(10):
+#         print fi.next()
