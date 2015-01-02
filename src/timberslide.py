@@ -14,10 +14,11 @@ timberslide -- S3 to PostgreSQL batch load utility for Niddel-generated logs
 import sys
 import os
 
-from argparse import ArgumentParser
-from argparse import RawDescriptionHelpFormatter
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from getpass import getpass
 from TimberSlide.slots import parseSlotRange, mergeSlotSets
 from TimberSlide.s3repository import S3Repository
+from TimberSlide.db import connect, droptable, validtable
 
 __all__ = []
 __version__ = 0.1
@@ -64,11 +65,23 @@ USAGE
 
     try:
         # Setup argument parser
-        parser = ArgumentParser(description=program_license, formatter_class=RawDescriptionHelpFormatter)
+        parser = ArgumentParser(description=program_license, formatter_class=ArgumentDefaultsHelpFormatter)
         #parser.add_argument("-c", "--config", dest="config", help="path to the configuration file [default: %(default)s]", default="~/.timberslide")
         parser.add_argument('-v', '--version', action='version', version=program_version_message)
-        parser.add_argument('-r', '--repository', help='S3 directory where the data is located', default='s3://nevermind-logs/export/')
-        parser.add_argument('slot', nargs='+', help='time slots or ranges of time slots to load, either <slot> or <slot>-<slot> for an inclusive range, <slot>- for all slots above and -<slot> for all slots below the provided one; each slot should be in YYYY, YYYYMM, YYYYMMDD or YYYYMMDDHH format (UTC)')
+        parser.add_argument('-r', '--repository', default='s3://nevermind-logs/export/',
+                            help='S3 directory where the data is located')
+        parser.add_argument('-s', '--server', default='localhost:5432', 
+                            help='PostgreSQL server host and port number as <host>[:<port>]')
+        parser.add_argument('-d', '--database', default='postgres', help='PostgreSQL database')
+        parser.add_argument('-u', '--user', default='timberslide', help='PostgreSQL user name')
+        parser.add_argument('-p', '--password', required=False,
+                            help='PostgreSQL user password, if missing will be obtained interactively')
+        parser.add_argument('-t', '--table', type=validtable, default='logs', 
+                            help='PostgreSQL table name to write to')
+        parser.add_argument('-o', '--overwrite', action='store_true', 
+                            help='if true, will delete any pre-existing table and create new prior to insertion')
+        parser.add_argument('slot', nargs='+', 
+                            help='time slots or ranges of time slots to load, either <slot> or <slot>-<slot> for an inclusive range, <slot>- for all slots above and -<slot> for all slots below the provided one; each slot should be in YYYY, YYYYMM, YYYYMMDD or YYYYMMDDHH format (UTC)')
 
         # Process arguments
         args = parser.parse_args()
@@ -78,10 +91,19 @@ USAGE
         args.slot = mergeSlotSets([parseSlotRange(s, args.repository) for s in args.slot])
         print "Slots to process: "
         print "\t" + ", ".join(sorted([str(s) for s in args.slot], reverse=True))
-        for slot in sorted([s for s in args.slot], reverse=True):
-            print "Files found for "+str(slot)+ ":"
-            for key in args.repository.slotkeys(slot):
-                print "\ts3://" + args.repository.bucket + '/' + key.name
+#         for slot in sorted([s for s in args.slot], reverse=True):
+#             print "Files found for "+str(slot)+ ":"
+#             for key in args.repository.slotkeys(slot):
+#                 print "\ts3://" + args.repository.bucket + '/' + key.name
+
+        # if password was not provided, get it interactively
+        if args.password is None:
+            args.password = getpass('Enter password for [{}@{}]: '.format(args.user, args.server))
+
+        # delete SQL table if necessary
+        if args.overwrite:
+            print 'Dropping table \'{}\' if it exists...'.format(args.table)
+            droptable(connect(args.server, args.database, args.user, args.password), args.table)
 
         return 0
     except KeyboardInterrupt:
