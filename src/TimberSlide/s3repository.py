@@ -2,6 +2,14 @@
 Created on 30/12/2014
 
 @author: asieira
+
+
+****IMPORTANT****
+Hey, @asieira - FYI - if you're hitting our buckets with `boto` your connect_bucket calls 
+should probably have `validate=False`. Boto default to True and tries to enumerate more of 
+the root of the bucket than it should. Just got bit by this on a different project.
+****IMPORTANT****
+
 '''
 
 from re import compile

@@ -14,7 +14,8 @@ class ParseTest(unittest.TestCase):
         func = { 'c':float, 'd':int, 'e':bool }
         nonevals = set(["", "NA"])
         tsv = TSVIterator(StringIO(text), func, nonevals)
-        self.assertEquals(tsv.next(), {'a': None, 'b': None, 'c': 12.5, 'd': 12, 'e': True})
+        self.assertEquals(tsv.colnames, [ 'a', 'b', 'c', 'd', 'e' ])
+        self.assertEquals(tsv.next(), [ None, None, 12.5, 12, True])
         with self.assertRaises(StopIteration):
             tsv.next()
 

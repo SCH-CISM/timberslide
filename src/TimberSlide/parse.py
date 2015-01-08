@@ -4,9 +4,7 @@ Created on 31/12/2014
 @author: asieira
 '''
 
-from csv import DictReader
-from s3repository import BZ2KeyIterator, S3Repository
-from slots import Slot
+import csv
 
 # Default transformations to be applied to fields read from TSV files
 _default_func = {'net.src.port': int, 'net.dst.port': int, 'net.blocked': bool,
@@ -32,25 +30,40 @@ Will return one dict for each row, mapping column names to values.
 '''
 class TSVIterator:
     def __init__(self, reader, func=_default_func, nonevals=_default_nonevals):
-        self._reader = DictReader(reader, delimiter='\t')
-        self.func = func
+        self._reader = csv.reader(reader, delimiter='\t')
         self.nonevals = nonevals
+        self.colnames = self._reader.next()
+        self.func = [ None ] * len(self.colnames)
+        for i in range(len(self.colnames)):
+            if self.colnames[i] in func.keys():
+                self.func[i] = func[self.colnames[i]]
+        self._row = 0
     
     def __iter__(self):
         return self
     
     def next(self):
         retval = self._reader.next()
-        for k in retval.keys():
-            if retval[k] in self.nonevals:
-                retval[k] = None
-            elif k in self.func.keys():
-                retval[k] = self.func[k](retval[k])
+        self._row = self._row + 1
+        while len(retval) == 0:
+            retval = self._reader.next()            
+            self._row = self._row + 1
+
+        d = {}
+        assert(len(retval) == len(self.colnames))
+        for i in range(len(self.colnames)):
+            d[self.colnames[i]] = retval[i]
+        print d
+
+        for i in range(len(retval)):
+            if retval[i] in self.nonevals:
+                retval[i] = None
+            elif self.func[i] is not None:
+                try:
+                    retval[i] = self.func[i](retval[i])
+                except Exception, e:
+                    print 'Error in row {} processing column {} with value {}'.format(str(self._row),
+                                                                                      self.colnames[i],
+                                                                                      retval[i])
+                    raise e
         return retval
-    
-# if __name__ == "__main__":
-#     repo = S3Repository("s3://nevermind-logs/export")
-#     k = repo.slotkeys(Slot("2014122901")).pop()
-#     fi = TSVIterator(BZ2KeyIterator(k))
-#     for i in range(10):
-#         print fi.next()

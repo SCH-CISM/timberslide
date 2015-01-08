@@ -16,9 +16,11 @@ import os
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from getpass import getpass
+from time import time
 from TimberSlide.slots import parseSlotRange, mergeSlotSets
-from TimberSlide.s3repository import S3Repository
-from TimberSlide.db import connect, droptable, validtable
+from TimberSlide.s3repository import S3Repository, BZ2KeyIterator
+from TimberSlide.db import connect, droptable, is_valid_id, createtable, insert
+from TimberSlide.parse import TSVIterator
 
 __all__ = []
 __version__ = 0.1
@@ -72,11 +74,12 @@ USAGE
                             help='S3 directory where the data is located')
         parser.add_argument('-s', '--server', default='localhost:5432', 
                             help='PostgreSQL server host and port number as <host>[:<port>]')
-        parser.add_argument('-d', '--database', default='postgres', help='PostgreSQL database')
+        parser.add_argument('-d', '--database', type=is_valid_id, default='postgres', 
+                            help='PostgreSQL database')
         parser.add_argument('-u', '--user', default='timberslide', help='PostgreSQL user name')
         parser.add_argument('-p', '--password', required=False,
                             help='PostgreSQL user password, if missing will be obtained interactively')
-        parser.add_argument('-t', '--table', type=validtable, default='logs', 
+        parser.add_argument('-t', '--table', type=is_valid_id, default='logs', 
                             help='PostgreSQL table name to write to')
         parser.add_argument('-o', '--overwrite', action='store_true', 
                             help='if true, will delete any pre-existing table and create new prior to insertion')
@@ -91,31 +94,43 @@ USAGE
         args.slot = mergeSlotSets([parseSlotRange(s, args.repository) for s in args.slot])
         print "Slots to process: "
         print "\t" + ", ".join(sorted([str(s) for s in args.slot], reverse=True))
-#         for slot in sorted([s for s in args.slot], reverse=True):
-#             print "Files found for "+str(slot)+ ":"
-#             for key in args.repository.slotkeys(slot):
-#                 print "\ts3://" + args.repository.bucket + '/' + key.name
+        
+        # find out all S3 keys to process
+        keys = set()
+        for s in args.slot:
+            keys.update(args.repository.slotkeys(s))
+        print "Found "+str(len(keys))+" matching files at "+args.repository.location
 
         # if password was not provided, get it interactively
         if args.password is None:
             args.password = getpass('Enter password for [{}@{}]: '.format(args.user, args.server))
 
-        # delete SQL table if necessary
+        # delete and create SQL table if necessary
+        conn = connect(args.server, args.database, args.user, args.password)
         if args.overwrite:
             print 'Dropping table \'{}\' if it exists...'.format(args.table)
-            droptable(connect(args.server, args.database, args.user, args.password), args.table)
+            droptable(conn, args.table)
+        createtable(conn, args.table)
+
+        # process the files
+        for k in keys:
+            print 'Reading '+k.name
+            start = time()
+            count = insert(conn, args.table, TSVIterator(BZ2KeyIterator(k)))
+            end = time()
+            print 'Inserted {} rows in {} seconds'.format(str(count), str(end-start))
 
         return 0
     except KeyboardInterrupt:
         ### handle keyboard interrupt ###
         return 0
-    except Exception, e:
-        if DEBUG or TESTRUN:
-            raise(e)
-        indent = len(program_name) * " "
-        sys.stderr.write(program_name + ": " + repr(e) + "\n")
-        sys.stderr.write(indent + "  for help use --help")
-        return 2
+#     except Exception, e:
+#         if DEBUG or TESTRUN:
+#             raise(e)
+#         indent = len(program_name) * " "
+#         sys.stderr.write(program_name + ": " + repr(e) + "\n")
+#         sys.stderr.write(indent + "  for help use --help")
+#         return 2
 
 if __name__ == "__main__":
 #     if DEBUG:

@@ -4,16 +4,16 @@ Created on 02/01/2015
 @author: asieira
 '''
 import unittest
-from db import validtable
+from db import is_valid_id
 
 class Test(unittest.TestCase):
     def testValidTable(self):
-        self.assertTrue(validtable('a'))
-        self.assertTrue(validtable('a9'))
-        self.assertTrue(validtable('a_9'))
-        self.assertFalse(validtable('_a9'))
-        self.assertFalse(validtable(''))
-        self.assertFalse(validtable('table;EVILINJECT'))
+        self.assertTrue(is_valid_id('a'))
+        self.assertTrue(is_valid_id('a9'))
+        self.assertTrue(is_valid_id('a_9'))
+        self.assertFalse(is_valid_id('_a9'))
+        self.assertFalse(is_valid_id(''))
+        self.assertFalse(is_valid_id('table;EVILINJECT'))
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
