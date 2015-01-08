@@ -9,6 +9,9 @@ from slots import Slot
 from bz2 import BZ2Compressor
 from random import randrange
 
+# Streaming compression class that simulates the 'read' behavior of an S3 key that we use
+# to test the BZ2KeyIterator class. It purposedfully tries to split the data in weird ways
+# so we can simulate the behavior of a file that is a lot larger than the buffer we use. 
 class _S3RepositoryTestKey:
     def __init__(self, text):
         self.text = text
@@ -46,11 +49,11 @@ class S3RepositoryTest(unittest.TestCase):
         self.assertEquals(repo.slotprefix(Slot("2014010212")), "prefix1/prefix2/2014/01/02/12/")
 
     def testBZ2decomp(self):
-        i = BZ2KeyIterator(_S3RepositoryTestKey("blahblahblah"), 10)
+        i = BZ2KeyIterator(_S3RepositoryTestKey("blahblahblah"), 4)
         self.assertEquals("blahblahblah", i.next())
         with self.assertRaises(StopIteration):
             i.next()
-        i = BZ2KeyIterator(_S3RepositoryTestKey("blahblahblah\nblehblehbleh"), 10)
+        i = BZ2KeyIterator(_S3RepositoryTestKey("blahblahblah\nblehblehbleh"), 4)
         self.assertEquals("blahblahblah\n", i.next())
         self.assertEquals("blehblehbleh", i.next())
         with self.assertRaises(StopIteration):
