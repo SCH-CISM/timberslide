@@ -4,8 +4,33 @@ Created on 30/12/2014
 @author: asieira
 '''
 import unittest
-from TimberSlide.s3repository import S3Repository
+from TimberSlide.s3repository import S3Repository, BZ2KeyIterator
 from slots import Slot
+from bz2 import BZ2Compressor
+from random import randrange
+
+class _S3RepositoryTestKey:
+    def __init__(self, text):
+        self.text = text
+        self.comp = BZ2Compressor()
+        
+    def read(self, size):
+        while len(self.text) > 0:
+            if min(size, len(self.text)) == 1:
+                numbytes = 1
+            else:
+                numbytes = randrange(1,min(size, len(self.text)))
+            retval = self.comp.compress(self.text[0:numbytes])
+            self.text = self.text[numbytes:len(self.text)]
+            if retval is not None:
+                return retval
+        
+        if self.comp is None:
+            return None
+        else:
+            retval = self.comp.flush()
+            self.comp = None
+            return retval
 
 class S3RepositoryTest(unittest.TestCase):
     def testInit(self):
@@ -19,6 +44,18 @@ class S3RepositoryTest(unittest.TestCase):
         self.assertEquals(repo.slotprefix(Slot("201401")), "prefix1/prefix2/2014/01/")
         self.assertEquals(repo.slotprefix(Slot("20140102")), "prefix1/prefix2/2014/01/02/")
         self.assertEquals(repo.slotprefix(Slot("2014010212")), "prefix1/prefix2/2014/01/02/12/")
+
+    def testBZ2decomp(self):
+        i = BZ2KeyIterator(_S3RepositoryTestKey("blahblahblah"), 10)
+        self.assertEquals("blahblahblah", i.next())
+        with self.assertRaises(StopIteration):
+            i.next()
+        i = BZ2KeyIterator(_S3RepositoryTestKey("blahblahblah\nblehblehbleh"), 10)
+        self.assertEquals("blahblahblah\n", i.next())
+        self.assertEquals("blehblehbleh", i.next())
+        with self.assertRaises(StopIteration):
+            i.next()
+
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
