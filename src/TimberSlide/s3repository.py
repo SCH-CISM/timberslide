@@ -2,14 +2,6 @@
 Created on 30/12/2014
 
 @author: asieira
-
-
-****IMPORTANT****
-Hey, @asieira - FYI - if you're hitting our buckets with `boto` your connect_bucket calls 
-should probably have `validate=False`. Boto default to True and tries to enumerate more of 
-the root of the bucket than it should. Just got bit by this on a different project.
-****IMPORTANT****
-
 '''
 
 from re import compile
@@ -43,7 +35,7 @@ class S3Repository:
     def _open(self):
         if self._conn is None:
             self._conn = S3Connection()
-            self._bucket = self._conn.get_bucket(self.bucket)
+            self._bucket = self._conn.get_bucket(self.bucket, validate=False)
     
     def minslot(self):
         if self._minslot is None:
@@ -153,17 +145,29 @@ class BZ2KeyIterator:
         self.bufsize = bufsize
         self._decomp = BZ2Decompressor()
         self._lines = []
+        self._done = False
         
     def __iter__(self):
         return self
     
     def next(self):
-        if len(self._lines) > 0:
-            return self._lines.pop(0)
-        
-        chunk = self.key.read(self.bufsize)
-        if not chunk:
-            raise StopIteration
-        for l in self._decomp.decompress(chunk).split('\n'):
-            self._lines.append(l+'\n')
-        return self.next()
+        while True:
+            if len(self._lines) > 1:
+                return self._lines.pop(0) + '\n'
+            elif self._done and len(self._lines) == 1:
+                return self._lines.pop(0)
+            elif self._done and len(self._lines) == 0:
+                raise StopIteration
+            else:
+                chunk = self.key.read(self.bufsize)
+                if chunk is not None:
+                    try:
+                        lines = self._decomp.decompress(chunk).split('\n')
+                        if len(self._lines) > 0:
+                            self._lines[len(self._lines)-1] = self._lines[len(self._lines)-1] + lines.pop(0) 
+                        for l in lines:
+                            self._lines.append(l)
+                    except EOFError:
+                        self._done = True
+                else:
+                    self._done = True

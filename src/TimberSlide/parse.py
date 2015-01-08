@@ -49,11 +49,8 @@ class TSVIterator:
             retval = self._reader.next()            
             self._row = self._row + 1
 
-        d = {}
+        # just a sanity check, need to do proper exception here later
         assert(len(retval) == len(self.colnames))
-        for i in range(len(self.colnames)):
-            d[self.colnames[i]] = retval[i]
-        print d
 
         for i in range(len(retval)):
             if retval[i] in self.nonevals:
