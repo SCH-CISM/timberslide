@@ -62,16 +62,16 @@ class SlotTest(unittest.TestCase):
                           set([Slot("20141230"), Slot("201412"), Slot("2014")]))
 
     def testSlotChildrenStart(self):
-        self.assertEquals(Slot("2014").childrenstart(), Slot("201401"))
-        self.assertEquals(Slot("201412").childrenstart(), Slot("20141201"))
-        self.assertEquals(Slot("20141230").childrenstart(), Slot("2014123000"))
-        self.assertIsNone(Slot("2014123010").childrenstart())
+        self.assertEquals(Slot("2014").children_start(), Slot("201401"))
+        self.assertEquals(Slot("201412").children_start(), Slot("20141201"))
+        self.assertEquals(Slot("20141230").children_start(), Slot("2014123000"))
+        self.assertIsNone(Slot("2014123010").children_start())
 
     def testSlotChildrenEnd(self):
-        self.assertEquals(Slot("2014").childrenend(), Slot("201412"))
-        self.assertEquals(Slot("201412").childrenend(), Slot("20141231"))
-        self.assertEquals(Slot("20141230").childrenend(), Slot("2014123023"))
-        self.assertIsNone(Slot("2014123010").childrenend())
+        self.assertEquals(Slot("2014").children_end(), Slot("201412"))
+        self.assertEquals(Slot("201412").children_end(), Slot("20141231"))
+        self.assertEquals(Slot("20141230").children_end(), Slot("2014123023"))
+        self.assertIsNone(Slot("2014123010").children_end())
 
     def testSlotChildren(self):
         self.assertEquals(Slot("2014").children(), 

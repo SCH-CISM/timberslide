@@ -60,7 +60,7 @@ class Slot(object):
             par = par.parent()
         return retval
     
-    def childrenstart(self):
+    def children_start(self):
         if len(self) == 4 or len(self) == 6:
             return Slot(self.slot + "01")
         elif len(self) == 8:
@@ -68,7 +68,7 @@ class Slot(object):
         else:
             return None
     
-    def childrenend(self):
+    def children_end(self):
         if len(self) == 4:
             return Slot(self.slot + "12")
         elif len(self) == 6:
@@ -81,8 +81,8 @@ class Slot(object):
     def children(self):
         if len(self) == 10:
             return None
-        start = self.childrenstart().slot
-        end = self.childrenend().slot
+        start = self.children_start().slot
+        end = self.children_end().slot
         return set([Slot(self.slot+format(x, "02")) 
                     for x in range(int(start[len(start)-2:len(start)]),
                                    int(end[len(end)-2:len(end)])+1)])
@@ -95,9 +95,9 @@ class Slot(object):
         start = self
         end = other
         while len(start) < len(end):
-            start = start.childrenstart()
+            start = start.children_start()
         while len(start) > len(end):
-            end = end.childrenend()
+            end = end.children_end()
         if start > end:
             return other.rangeto(self)
         
@@ -110,21 +110,39 @@ class Slot(object):
         return self.slot
         
     def __lt__(self, other):
+        if not isinstance(other, Slot):
+            raise TypeError("another Slot instance expected")
+
         return self.slot < other.slot
 
     def __le__(self, other):
+        if not isinstance(other, Slot):
+            raise TypeError("another Slot instance expected")
+
         return self.slot <= other.slot
         
     def __gt__(self, other):
+        if not isinstance(other, Slot):
+            raise TypeError("another Slot instance expected")
+
         return self.slot > other.slot
 
     def __ge__(self, other):
+        if not isinstance(other, Slot):
+            raise TypeError("another Slot instance expected")
+
         return self.slot >= other.slot
 
     def __eq__(self, other):
+        if not isinstance(other, Slot):
+            raise TypeError("another Slot instance expected")
+
         return self.slot == other.slot
 
     def __neq__(self, other):
+        if not isinstance(other, Slot):
+            raise TypeError("another Slot instance expected")
+
         return self.slot != other.slot
 
     def __len__(self):
@@ -135,7 +153,7 @@ class Slot(object):
     
     def __add__(self, other):
         if not type(other) is IntType:
-            raise ValueError("slots should be added to integers")
+            raise TypeError("slots should be added to integers")
         if len(self) == 4:
             return Slot(format(self.year()+other, "04"))
         elif len(self) == 6:
@@ -177,7 +195,7 @@ def _rangeto(start, end):
     endpar = end.parent()
     if startpar == endpar:
         # same parent
-        if start == startpar.childrenstart() and end == startpar.childrenend():
+        if start == startpar.children_start() and end == startpar.children_end():
             # completely cover parent, so return it
             return set([startpar])
         else:
@@ -188,12 +206,12 @@ def _rangeto(start, end):
     else:
         # parents are different, recurse
         if startpar+1 > endpar-1:
-            return (start.rangeto(startpar.childrenend()) 
-                    | endpar.childrenstart().rangeto(end))
+            return (start.rangeto(startpar.children_end()) 
+                    | endpar.children_start().rangeto(end))
         else:
-            return (start.rangeto(startpar.childrenend()) 
+            return (start.rangeto(startpar.children_end()) 
                     | (startpar+1).rangeto(endpar-1)
-                    | endpar.childrenstart().rangeto(end))
+                    | endpar.children_start().rangeto(end))
 
 '''
 Parses a slot range string in the '<slot>:<slot>' format, replacing any missing slots by the
