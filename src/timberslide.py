@@ -43,7 +43,8 @@ class CLIError(Exception):
     def __unicode__(self):
         return self.msg
     
-    
+# This class is a process that gets S3 prefix names from a queue and writes the
+# corresponding data to the database.    
 class InserterProcess(Process):
     def __init__(self, name, queue, args):
         super(InserterProcess, self).__init__(name=name)
@@ -56,7 +57,7 @@ class InserterProcess(Process):
                        self.args.password)
         repo = S3Repository(self.args.repository)
         logging.basicConfig(format='%(levelname)s %(asctime)s [%(processName)s] %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S')
+                            datefmt='%Y-%m-%d %H:%M:%S', level=logging.ERROR)
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
         logger.info('started')
@@ -126,7 +127,7 @@ def main(argv=None): # IGNORE:C0111
         
         # merge slots and give feedback
         logging.basicConfig(format='%(levelname)s %(asctime)s [%(processName)s] %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S')
+                            datefmt='%Y-%m-%d %H:%M:%S', level=logging.ERROR)
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
 
@@ -171,13 +172,13 @@ def main(argv=None): # IGNORE:C0111
     except KeyboardInterrupt:
         ### handle keyboard interrupt ###
         return 0
-#     except Exception, e:
-#         if DEBUG or TESTRUN:
-#             raise(e)
-#         indent = len(program_name) * " "
-#         sys.stderr.write(program_name + ": " + repr(e) + "\n")
-#         sys.stderr.write(indent + "  for help use --help")
-#         return 2
+    except Exception, e:
+        if DEBUG or TESTRUN:
+            raise(e)
+        indent = len(program_name) * " "
+        logger.fatal(repr(e))
+        sys.stderr.write(indent + "  for help use --help")
+        return 2
 
 if __name__ == "__main__":
 #     if DEBUG:

@@ -8,6 +8,7 @@ from re import compile
 from boto.s3.connection import S3Connection
 from bz2 import BZ2Decompressor
 from slots import Slot
+import logging
 
 _bucketregex = compile("^s3://(?P<bucket>[^/]+)/(?P<prefix>.*?)/?$")
 _yregex = compile("/(?P<val>[0-9]{4})/$")
@@ -72,7 +73,7 @@ class S3Repository(object):
             hour = format(min(hour), "02")
             
             self._minslot = Slot(year+month+day+hour)
-            print "Smallest slot in repository is "+str(self._minslot)
+            logging.debug("Smallest slot in repository is "+str(self._minslot))
         return self._minslot
     
     # Returns the latest slot for which there is data in the repository,
@@ -110,7 +111,7 @@ class S3Repository(object):
             hour = format(max(hour), "02")
             
             self._maxslot = Slot(year+month+day+hour)
-            print "Biggest slot in repository is "+str(self._maxslot)
+            logging.debug("Biggest slot in repository is "+str(self._maxslot))
         return self._maxslot
     
     # Returns the S3 prefix associated with a given slot.

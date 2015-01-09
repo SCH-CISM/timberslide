@@ -5,6 +5,7 @@ Created on 31/12/2014
 '''
 
 import csv
+import logging
 
 # Default transformations to be applied to fields read from TSV files
 _default_func = {'net.src.port': int, 'net.dst.port': int, 'net.blocked': bool,
@@ -59,8 +60,8 @@ class TSVIterator(object):
                 try:
                     retval[i] = self.func[i](retval[i])
                 except Exception, e:
-                    print 'Error in row {} processing column {} with value {}'.format(str(self._row),
-                                                                                      self.colnames[i],
-                                                                                      retval[i])
+                    logging.fatal('Error in row {} processing column {} with value {}'.format(str(self._row),
+                                                                                              self.colnames[i],
+                                                                                              retval[i]))
                     raise e
         return retval

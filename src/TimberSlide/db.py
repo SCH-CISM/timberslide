@@ -7,6 +7,7 @@ Created on 02/01/2015
 import psycopg2
 from argparse import ArgumentTypeError
 from re import compile, IGNORECASE, sub
+import logging
 
 # regular expression to validate identifiers such as table and database names
 # used by is_valid_id
@@ -134,7 +135,7 @@ def insert(conn, name, tsviter, chunksize=16*1024):
         qmain = qmain.format(name, ", ".join(sqlcolnames))
         qval = "(" + ", ".join(["%s"] * len(tsviter.colnames)) + ")"
     except StopIteration:
-        print "Empty file!"
+        logging.error("File is empty!")
         return
 
     # process 'chunksize' items at a time doing multi-value inserts
