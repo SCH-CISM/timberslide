@@ -12,10 +12,10 @@ class DummyS3Repository(S3Repository):
     def __init__(self, location):
         S3Repository.__init__(self, location)
     
-    def minslot(self):
+    def get_min_slot(self):
         return Slot("2000010100")
 
-    def maxslot(self):
+    def get_max_slot(self):
         return Slot("2100123123")
 
 class SlotTest(unittest.TestCase):
@@ -143,15 +143,15 @@ class SlotTest(unittest.TestCase):
         self.assertEquals(parseSlotRange(":20000102", repo), 
                           set([Slot("20000101"), Slot("20000102")]))
         self.assertEquals(parseSlotRange(":2000010101", repo), 
-                          repo.minslot().rangeto("2000010101"))
+                          repo.get_min_slot().rangeto("2000010101"))
         self.assertEquals(parseSlotRange("2099:", repo), set([Slot("2099"), Slot("2100")]))
         self.assertEquals(parseSlotRange("210011:", repo), 
                           set([Slot("210011"), Slot("210012")]))
         self.assertEquals(parseSlotRange("21001230:", repo), 
                           set([Slot("21001230"), Slot("21001231")]))
         self.assertEquals(parseSlotRange("2100123122:", repo), 
-                          Slot("2100123122").rangeto(repo.maxslot()))
-        self.assertEquals(parseSlotRange(":", repo), repo.minslot().rangeto(repo.maxslot()))
+                          Slot("2100123122").rangeto(repo.get_max_slot()))
+        self.assertEquals(parseSlotRange(":", repo), repo.get_min_slot().rangeto(repo.get_max_slot()))
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testSlots']

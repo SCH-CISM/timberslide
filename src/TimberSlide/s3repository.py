@@ -19,7 +19,7 @@ using the <prefix>/<YYYY>/<MM>/<DD>/<HH>/ prefixes according to the slot.
 
 It will allow all S3 Key objects associated with a Slot set to be easily obtained.
 '''
-class S3Repository:
+class S3Repository(object):
     def __init__(self, location):
         m = _bucketregex.match(location)
         if m is None:
@@ -37,7 +37,9 @@ class S3Repository:
             self._conn = S3Connection()
             self._bucket = self._conn.get_bucket(self.bucket, validate=False)
     
-    def minslot(self):
+    # Returns the earliest slot for which there is data in the repository,
+    # in YYYYMMDDHH format.
+    def get_min_slot(self):
         if self._minslot is None:
             self._open()
             
@@ -73,7 +75,9 @@ class S3Repository:
             print "Smallest slot in repository is "+str(self._minslot)
         return self._minslot
     
-    def maxslot(self):
+    # Returns the latest slot for which there is data in the repository,
+    # in YYYYMMDDHH format.
+    def get_max_slot(self):
         if self._maxslot is None:
             self._open()
 
@@ -109,7 +113,8 @@ class S3Repository:
             print "Biggest slot in repository is "+str(self._maxslot)
         return self._maxslot
     
-    def slotprefix(self, slot):
+    # Returns the S3 prefix associated with a given slot.
+    def get_slot_prefix(self, slot):
         retval = self.prefix + format(slot.year(), "04") + '/'
         if slot.month() is None:
             return retval
@@ -121,25 +126,27 @@ class S3Repository:
             return retval
         return retval + format(slot.hour(), "02") + '/'
     
-    def slotkeys(self, slots):            
+    # Returns a list of boto S3 Key class instances associated with a given slot.
+    def get_slot_keys(self, slots):            
         self._open()
         retval = set()
         if isinstance(slots, Slot):
             slots = [slots]
         for slot in slots:
-            for key in self._bucket.list(self.slotprefix(slot)):
+            for key in self._bucket.list(self.get_slot_prefix(slot)):
                 retval.add(key)
-        return sorted([k for k in retval], key=_getname, reverse=True)
-        
-# used in S3Repository.slotkeys
-def _getname(key):
-    return key.name
+        return list(retval)
+    
+    # Returns a boto S3 Key class instance for a given prefix.
+    def get_prefix_key(self, prefix):
+        self._open()
+        return self._bucket.get_key(prefix)
 
 '''
 This class is an iterator (https://docs.python.org/2/glossary.html#term-iterator) 
 over the lines of an S3 Key object that also decompresses the contents using BZ2.
 '''
-class BZ2KeyIterator:
+class BZ2KeyIterator(object):
     def __init__(self, key, bufsize=100*1024):
         self.key = key
         self.bufsize = bufsize

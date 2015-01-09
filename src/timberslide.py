@@ -13,6 +13,7 @@ timberslide -- S3 to PostgreSQL batch load utility for Niddel-generated logs
 
 import sys
 import os
+import logging
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from getpass import getpass
@@ -21,6 +22,7 @@ from TimberSlide.slots import parseSlotRange, mergeSlotSets
 from TimberSlide.s3repository import S3Repository, BZ2KeyIterator
 from TimberSlide.db import connect, droptable, is_valid_id, createtable, insert
 from TimberSlide.parse import TSVIterator
+from multiprocessing import Process, JoinableQueue, cpu_count
 
 __all__ = []
 __version__ = 0.1
@@ -40,6 +42,34 @@ class CLIError(Exception):
         return self.msg
     def __unicode__(self):
         return self.msg
+    
+    
+class InserterProcess(Process):
+    def __init__(self, name, queue, args):
+        super(InserterProcess, self).__init__(name=name)
+        self.args = args
+        self.queue = queue
+        self.daemon = True
+        
+    def run(self):
+        conn = connect(self.args.server, self.args.database, self.args.user, 
+                       self.args.password)
+        repo = S3Repository(self.args.repository)
+        logging.basicConfig(format='%(levelname)s %(asctime)s [%(processName)s] %(message)s',
+                            datefmt='%Y-%m-%d %H:%M:%S')
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.INFO)
+        logger.info('started')
+
+        while True:
+            k = repo.get_prefix_key(self.queue.get())
+            start = time()
+            count = insert(conn, self.args.table, TSVIterator(BZ2KeyIterator(k)))
+            end = time()
+            logger.info('Inserted {} rows from {} in {} seconds'.format(str(count), k.name, 
+                                                                         str(end-start)))
+            self.queue.task_done()
+
 
 def main(argv=None): # IGNORE:C0111
     '''Command line options.'''
@@ -62,7 +92,6 @@ def main(argv=None): # IGNORE:C0111
   Distributed on an "AS IS" basis without warranties
   or conditions of any kind, either express or implied.
 
-USAGE
 ''' % (program_shortdesc, str(__date__))
 
     try:
@@ -83,6 +112,12 @@ USAGE
                             help='PostgreSQL table name to write to')
         parser.add_argument('-o', '--overwrite', action='store_true', 
                             help='if true, will delete any pre-existing table and create new prior to insertion')
+        try:
+            cpus = cpu_count()
+        except NotImplementedError:
+            cpus = 2
+        parser.add_argument('-w', '--workers', type=int, default=cpus,
+                            help='if true, will delete any pre-existing table and create new prior to insertion')
         parser.add_argument('slot', nargs='+', 
                             help='time slots or ranges of time slots to load, either <slot> or <slot>-<slot> for an inclusive range, <slot>- for all slots above and -<slot> for all slots below the provided one; each slot should be in YYYY, YYYYMM, YYYYMMDD or YYYYMMDDHH format (UTC)')
 
@@ -90,16 +125,21 @@ USAGE
         args = parser.parse_args()
         
         # merge slots and give feedback
-        args.repository = S3Repository(args.repository)
-        args.slot = mergeSlotSets([parseSlotRange(s, args.repository) for s in args.slot])
-        print "Slots to process: "
-        print "\t" + ", ".join(sorted([str(s) for s in args.slot], reverse=True))
+        logging.basicConfig(format='%(levelname)s %(asctime)s [%(processName)s] %(message)s',
+                            datefmt='%Y-%m-%d %H:%M:%S')
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.INFO)
+
+        repo = S3Repository(args.repository)
+        args.slot = mergeSlotSets([parseSlotRange(s, repo) for s in args.slot])
+        logger.info("Slots to process: " + ", ".join(sorted([str(s) for s in args.slot], 
+                                                            reverse=True)))
         
         # find out all S3 keys to process
         keys = set()
         for s in args.slot:
-            keys.update(args.repository.slotkeys(s))
-        print "Found "+str(len(keys))+" matching files at "+args.repository.location
+            keys.update(repo.get_slot_keys(s))
+        logger.info("Found "+str(len(keys))+" matching files at "+repo.location)
 
         # if password was not provided, get it interactively
         if args.password is None:
@@ -108,17 +148,24 @@ USAGE
         # delete and create SQL table if necessary
         conn = connect(args.server, args.database, args.user, args.password)
         if args.overwrite:
-            print 'Dropping table \'{}\' if it exists...'.format(args.table)
+            logger.info('Dropping table \'{}\' if it exists...'.format(args.table))
             droptable(conn, args.table)
         createtable(conn, args.table)
+        conn.commit()
+        conn.close()
 
-        # process the files
+        # create queue and workers
+        q = JoinableQueue()
+        for i in range(args.workers):
+            w = InserterProcess('Worker'+str(i), q, args)
+            w.start()
+        
+        # add keys to queue and wait for workers to finish
         for k in keys:
-            print 'Reading '+k.name
-            start = time()
-            count = insert(conn, args.table, TSVIterator(BZ2KeyIterator(k)))
-            end = time()
-            print 'Inserted {} rows in {} seconds'.format(str(count), str(end-start))
+            q.put(k.name)
+        q.join()
+        
+        logger.info("All done!")
 
         return 0
     except KeyboardInterrupt:

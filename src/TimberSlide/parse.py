@@ -28,7 +28,7 @@ the column name in 'func' to every non-None value.
 
 Will return one dict for each row, mapping column names to values.
 '''
-class TSVIterator:
+class TSVIterator(object):
     def __init__(self, reader, func=_default_func, nonevals=_default_nonevals):
         self._reader = csv.reader(reader, delimiter='\t')
         self.nonevals = nonevals

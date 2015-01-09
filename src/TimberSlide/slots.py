@@ -12,7 +12,7 @@ from calendar import monthrange
 This class represents a time slot that might contain files. It is represented as a string
 in YYYY, YYYYMM, YYYYMMDD or YYYYMMDDHH formats (UTC).
 '''
-class Slot:
+class Slot(object):
     def __init__(self, slot):
         self.slot = slot
         if not type(slot) is StringType or not slot.isdigit() or not len(slot) in [4, 6, 8, 10]: 
@@ -208,14 +208,14 @@ def parseSlotRange(text, repo):
         return set([Slot(text[0])])
     elif len(text) == 2:
         if len(text[0]) == 0:
-            text[0] = repo.minslot()
+            text[0] = repo.get_min_slot()
             if len(text[1]) > 0:
                 while len(text[0]) > len(text[1]):
                     text[0] = text[0].parent()
         else:
             text[0] = Slot(text[0])
         if len(text[1]) == 0:
-            text[1] = repo.maxslot()
+            text[1] = repo.get_max_slot()
             if len(text[0]) > 0:
                 while len(text[1]) > len(text[0]):
                     text[1] = text[1].parent()
