@@ -27,7 +27,8 @@ reader for tab-delimited fields.
 Will replace any of the values in 'nonevals' by None, and will apply any function mapped to
 the column name in 'func' to every non-None value.
 
-Will return one dict for each row, mapping column names to values.
+Will return one list for each row, and the 'colnames' attribute will contain the 
+corresponding column names.
 '''
 class TSVIterator(object):
     def __init__(self, reader, func=_default_func, nonevals=_default_nonevals):
