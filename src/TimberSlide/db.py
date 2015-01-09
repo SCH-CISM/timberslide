@@ -122,7 +122,7 @@ Loops through a TSV Iterator and writes each entry as a new row in the given tab
 
 Inspired by this: http://stackoverflow.com/questions/8134602/psycopg2-insert-multiple-rows-with-one-query
 ''' 
-def insert(conn, name, tsviter, chunksize=16*1024):
+def insert(conn, name, tsviter, chunksize=1024):
     cursor = conn.cursor()
     
     # build query strings based on column names found

@@ -25,9 +25,9 @@ from TimberSlide.parse import TSVIterator
 from multiprocessing import Process, JoinableQueue, cpu_count
 
 __all__ = []
-__version__ = 0.1
+__version__ = "1.0.1"
 __date__ = '2014-12-23'
-__updated__ = '2014-12-23'
+__updated__ = '2015-01-09'
 
 DEBUG = 1
 TESTRUN = 0
@@ -53,14 +53,15 @@ class InserterProcess(Process):
         self.daemon = True
         
     def run(self):
-        conn = connect(self.args.server, self.args.database, self.args.user, 
-                       self.args.password)
-        repo = S3Repository(self.args.repository)
         logging.basicConfig(format='%(levelname)s %(asctime)s [%(processName)s] %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', level=logging.ERROR)
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
-        logger.info('started')
+        logger.info('process started')
+        conn = connect(self.args.server, self.args.database, self.args.user, 
+                       self.args.password)
+        repo = S3Repository(self.args.repository)
+        logger.info('connections opened')
 
         while True:
             k = repo.get_prefix_key(self.queue.get())
@@ -124,13 +125,14 @@ def main(argv=None): # IGNORE:C0111
 
         # Process arguments
         args = parser.parse_args()
-        
-        # merge slots and give feedback
+
+        # set up logger        
         logging.basicConfig(format='%(levelname)s %(asctime)s [%(processName)s] %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', level=logging.ERROR)
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
 
+        # merge slots and give feedback
         repo = S3Repository(args.repository)
         args.slot = mergeSlotSets([parseSlotRange(s, repo) for s in args.slot])
         logger.info("Slots to process: " + ", ".join(sorted([str(s) for s in args.slot], 
@@ -148,22 +150,23 @@ def main(argv=None): # IGNORE:C0111
 
         # delete and create SQL table if necessary
         conn = connect(args.server, args.database, args.user, args.password)
+        conn.autocommit = True
         if args.overwrite:
             logger.info('Dropping table \'{}\' if it exists...'.format(args.table))
             droptable(conn, args.table)
+        logger.info('Creating table \'{}\' if it does not exist...'.format(args.table))
         createtable(conn, args.table)
-        conn.commit()
         conn.close()
 
-        # create queue and workers
+        # create queue and add keys
         q = JoinableQueue()
+        while len(keys) > 0:
+            q.put(keys.pop().name)
+
+        # create workers and wait for them to end
         for i in range(args.workers):
             w = InserterProcess('Worker'+str(i), q, args)
             w.start()
-        
-        # add keys to queue and wait for workers to finish
-        for k in keys:
-            q.put(k.name)
         q.join()
         
         logger.info("All done!")
