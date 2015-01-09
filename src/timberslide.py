@@ -25,9 +25,9 @@ from TimberSlide.parse import TSVIterator
 from multiprocessing import Process, JoinableQueue, cpu_count
 
 __all__ = []
-__version__ = 0.1
+__version__ = "1.0.1"
 __date__ = '2014-12-23'
-__updated__ = '2014-12-23'
+__updated__ = '2015-01-09'
 
 DEBUG = 1
 TESTRUN = 0
