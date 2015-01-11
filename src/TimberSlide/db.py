@@ -14,25 +14,53 @@ import logging
 _identifier = compile('^[a-z][a-z0-9_]*$', IGNORECASE)
 
 '''
-Returns a new database connection to a PostgreSQL instance using psycopg2.
+Returns a given text value in quoted and escaped format for use as a value in a libpq 
+connection string. 
+
+See http://www.postgresql.org/docs/current/static/libpq-connect.html#LIBPQ-CONNSTRING
+'''
+def escape(text):
+    retval = '\''
+    for c in text:
+        if c == '\'':
+            retval = retval + '\\\''
+        elif c == '\\':
+            retval = retval + '\\\\'
+        else:
+            retval = retval + c
+    return retval + '\''
+
+'''
+Returns a new database connection string to a PostgreSQL instance using psycopg2.
 Assumes 'server' is in hostname[:port] format.
 '''
-def connect(server, database, user, password):
-    args = {'user': user, 'password': password}
+def connection_string(server, user, password, database=None, sslmode=None):
+    connstr = 'user={} password={}'.format(escape(user), escape(password))
     
     server = server.split(':')
-    args['host'] = server[0]
+    connstr = connstr + ' host=' + escape(server[0])
     if len(server) == 2:
-        args['port'] = int(server[1])
-        if args['port'] < 1 or args['port'] > 65535:
+        port = int(server[1])
+        if port < 1 or port > 65535:
             raise ValueError('invalid server port value')
+        connstr = connstr + ' port=' + str(port)
     elif len(server) != 1:
         raise ValueError('server must be in hostname[:port] format')
     
     if database is not None:
-        args['database'] = database
+        connstr = connstr + ' dbname=' + escape(database)
+
+    if sslmode is not None:
+        connstr = connstr + ' sslmode=' + escape(sslmode)
     
-    return psycopg2.connect(**args)
+    return connstr
+
+'''
+Returns a new database connection to a PostgreSQL instance using psycopg2.
+Assumes 'server' is in hostname[:port] format.
+'''
+def connect(server, user, password, database=None, sslmode=None):
+    return psycopg2.connect(connection_string(server, user, password, database, sslmode))
 
 '''
 Function meant to be used as an argparse type that will validate a postgres
@@ -156,4 +184,3 @@ def insert(conn, name, tsviter, chunksize=1024):
         cursor.close()
         conn.commit()
         return count
-    

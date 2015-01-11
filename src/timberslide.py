@@ -25,13 +25,16 @@ from TimberSlide.parse import TSVIterator
 from multiprocessing import Process, JoinableQueue, cpu_count
 
 __all__ = []
-__version__ = "1.0.2"
+__version__ = "1.1.0"
 __date__ = '2014-12-23'
 __updated__ = '2015-01-11'
 
 DEBUG = 1
 TESTRUN = 0
 PROFILE = 0
+
+logging.basicConfig(format='%(levelname)s %(asctime)s [%(processName)s] %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S', level=logging.ERROR)
 
 class CLIError(Exception):
     '''Generic exception to raise and log different fatal errors.'''
@@ -53,24 +56,26 @@ class InserterProcess(Process):
         self.daemon = True
         
     def run(self):
-        logging.basicConfig(format='%(levelname)s %(asctime)s [%(processName)s] %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S', level=logging.ERROR)
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
         logger.info('process started')
-        conn = connect(self.args.server, self.args.database, self.args.user, 
-                       self.args.password)
-        repo = S3Repository(self.args.repository, self.args.profile)
-        logger.info('connections opened')
 
-        while True:
-            k = repo.get_prefix_key(self.queue.get())
-            start = time()
-            count = insert(conn, self.args.table, TSVIterator(BZ2KeyIterator(k)))
-            end = time()
-            logger.info('Inserted {} rows from {} in {} seconds'.format(str(count), k.name, 
-                                                                         str(end-start)))
-            self.queue.task_done()
+        try:
+            conn = connect(self.args.server, self.args.user, 
+                           self.args.password, self.args.database, self.args.sslmode)
+            repo = S3Repository(self.args.repository, self.args.profile)
+            logger.info('connections opened')
+    
+            while True:
+                k = repo.get_prefix_key(self.queue.get())
+                start = time()
+                count = insert(conn, self.args.table, TSVIterator(BZ2KeyIterator(k)))
+                end = time()
+                logger.info('Inserted {} rows from {} in {} seconds'.format(str(count), k.name, 
+                                                                             str(end-start)))
+                self.queue.task_done()
+        except Exception, e:
+            logger.fatal(repr(e))
 
 
 def main(argv=None): # IGNORE:C0111
@@ -111,6 +116,10 @@ def main(argv=None): # IGNORE:C0111
         parser.add_argument('-u', '--user', default='timberslide', help='PostgreSQL user name')
         parser.add_argument('-p', '--password', required=False,
                             help='PostgreSQL user password, if missing will be obtained interactively')
+        parser.add_argument('--sslmode', default='verify-full',
+                            choices=['disable', 'allow', 'prefer', 'require', 'verify-ca', 
+                                     'verify-full'],
+                            help='value to use for the sslmode PostgreSQL connection string parameter')
         parser.add_argument('-t', '--table', type=is_valid_id, default='logs', 
                             help='PostgreSQL table name to write to')
         parser.add_argument('-o', '--overwrite', action='store_true', 
@@ -128,8 +137,6 @@ def main(argv=None): # IGNORE:C0111
         args = parser.parse_args()
 
         # set up logger        
-        logging.basicConfig(format='%(levelname)s %(asctime)s [%(processName)s] %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S', level=logging.ERROR)
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
 
@@ -150,7 +157,7 @@ def main(argv=None): # IGNORE:C0111
             args.password = getpass('Enter password for [{}@{}]: '.format(args.user, args.server))
 
         # delete and create SQL table if necessary
-        conn = connect(args.server, args.database, args.user, args.password)
+        conn = connect(args.server, args.user, args.password, args.database, args.sslmode)
         conn.autocommit = True
         if args.overwrite:
             logger.info('Dropping table \'{}\' if it exists...'.format(args.table))
