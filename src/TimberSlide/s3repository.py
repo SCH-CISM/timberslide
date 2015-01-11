@@ -21,11 +21,12 @@ using the <prefix>/<YYYY>/<MM>/<DD>/<HH>/ prefixes according to the slot.
 It will allow all S3 Key objects associated with a Slot set to be easily obtained.
 '''
 class S3Repository(object):
-    def __init__(self, location):
+    def __init__(self, location, profile=None):
         m = _bucketregex.match(location)
         if m is None:
             raise ValueError("location is not valid")
         self.location = location
+        self.profile = profile
         self.bucket = m.group('bucket')
         self.prefix = m.group('prefix')+"/"
         self._minslot = None
@@ -35,7 +36,7 @@ class S3Repository(object):
     
     def _open(self):
         if self._conn is None:
-            self._conn = S3Connection()
+            self._conn = S3Connection(profile_name=self.profile)
             self._bucket = self._conn.get_bucket(self.bucket, validate=False)
     
     # Returns the earliest slot for which there is data in the repository,

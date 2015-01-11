@@ -101,6 +101,7 @@ def main(argv=None): # IGNORE:C0111
         parser = ArgumentParser(description=program_license, formatter_class=ArgumentDefaultsHelpFormatter)
         #parser.add_argument("-c", "--config", dest="config", help="path to the configuration file [default: %(default)s]", default="~/.timberslide")
         parser.add_argument('-v', '--version', action='version', version=program_version_message)
+        parser.add_argument('--profile', help='profile to use from the boto credentials file - see http://boto.readthedocs.org/en/latest/boto_config_tut.html#credentials')
         parser.add_argument('-r', '--repository', default='s3://nevermind-logs/export/',
                             help='S3 directory where the data is located')
         parser.add_argument('-s', '--server', default='localhost:5432', 
@@ -133,7 +134,7 @@ def main(argv=None): # IGNORE:C0111
         logger.setLevel(logging.INFO)
 
         # merge slots and give feedback
-        repo = S3Repository(args.repository)
+        repo = S3Repository(args.repository, args.profile)
         args.slot = mergeSlotSets([parseSlotRange(s, repo) for s in args.slot])
         logger.info("Slots to process: " + ", ".join(sorted([str(s) for s in args.slot], 
                                                             reverse=True)))
