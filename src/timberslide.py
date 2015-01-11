@@ -60,7 +60,7 @@ class InserterProcess(Process):
         logger.info('process started')
         conn = connect(self.args.server, self.args.database, self.args.user, 
                        self.args.password)
-        repo = S3Repository(self.args.repository)
+        repo = S3Repository(self.args.repository, self.args.profile)
         logger.info('connections opened')
 
         while True:
