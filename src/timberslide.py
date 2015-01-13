@@ -138,7 +138,7 @@ def main(argv=None): # IGNORE:C0111
         parser.add_argument('-w', '--workers', type=int, default=cpus,
                             help='number of worker processes to use')
         parser.add_argument('slot', nargs='+', 
-                            help='time slots or ranges of time slots to load, either <slot> or <slot>-<slot> for an inclusive range, <slot>- for all slots above and -<slot> for all slots below the provided one; each slot should be in YYYY, YYYYMM, YYYYMMDD or YYYYMMDDHH format (UTC)')
+                            help='time slots or ranges of time slots to load, either <slot> or <slot>:<slot> for an inclusive range, <slot>: for all slots above and :<slot> for all slots below the provided one; each slot should be in YYYY, YYYYMM, YYYYMMDD or YYYYMMDDHH format (UTC)')
 
         # Process arguments
         args = parser.parse_args()
