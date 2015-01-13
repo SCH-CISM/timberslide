@@ -17,12 +17,13 @@ import logging
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from getpass import getpass
-from time import time
+from time import time, sleep
 from TimberSlide.slots import parseSlotRange, mergeSlotSets
 from TimberSlide.s3repository import S3Repository, BZ2KeyIterator
 from TimberSlide.db import connect, droptable, is_valid_id, createtable, insert
 from TimberSlide.parse import TSVIterator
-from multiprocessing import Process, JoinableQueue, cpu_count
+from multiprocessing import Process, Queue, cpu_count
+from Queue import Empty
 
 __all__ = []
 __version__ = "1.1.0"
@@ -59,6 +60,7 @@ class InserterProcess(Process):
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
         logger.info('process started')
+        conn = None
 
         try:
             conn = connect(self.args.server, self.args.user, 
@@ -67,13 +69,18 @@ class InserterProcess(Process):
             logger.info('connections opened')
     
             while True:
-                k = repo.get_prefix_key(self.queue.get())
+                k = repo.get_prefix_key(self.queue.get(True,5))
                 start = time()
                 count = insert(conn, self.args.table, TSVIterator(BZ2KeyIterator(k)))
                 end = time()
                 logger.info('Inserted {} rows from {} in {} seconds'.format(str(count), k.name, 
                                                                              str(end-start)))
-                self.queue.task_done()
+        except Empty:
+            logger.info('no more tasks to work on, closing connections')
+            self.queue.close()
+            if conn:
+                conn.close()
+            logger.info('connections closed')
         except Exception, e:
             logger.fatal(repr(e))
 
@@ -107,7 +114,7 @@ def main(argv=None): # IGNORE:C0111
         #parser.add_argument("-c", "--config", dest="config", help="path to the configuration file [default: %(default)s]", default="~/.timberslide")
         parser.add_argument('-v', '--version', action='version', version=program_version_message)
         parser.add_argument('--profile', help='profile to use from the boto credentials file - see http://boto.readthedocs.org/en/latest/boto_config_tut.html#credentials')
-        parser.add_argument('-r', '--repository', default='s3://nevermind-logs/export/',
+        parser.add_argument('-r', '--repository', default='s3://log-inbox.elk.sch/niddel-aggregated/',
                             help='S3 directory where the data is located')
         parser.add_argument('-s', '--server', default='localhost:5432', 
                             help='PostgreSQL server host and port number as <host>[:<port>]')
@@ -150,7 +157,11 @@ def main(argv=None): # IGNORE:C0111
         keys = set()
         for s in args.slot:
             keys.update(repo.get_slot_keys(s))
-        logger.info("Found "+str(len(keys))+" matching files at "+repo.location)
+        if len(keys) == 0:
+            logger.warning("No matching files found at {}, doing nothing...".format(repo.location))
+            return 0
+        else:
+            logger.info("Found "+str(len(keys))+" matching files at "+repo.location)
 
         # if password was not provided, get it interactively
         if args.password is None:
@@ -167,19 +178,31 @@ def main(argv=None): # IGNORE:C0111
         conn.close()
 
         # create queue and add keys
-        q = JoinableQueue()
+        q = Queue()
         while len(keys) > 0:
             q.put(keys.pop().name)
 
-        # create workers and wait for them to end
-        for i in range(args.workers):
-            w = InserterProcess('Worker'+str(i), q, args)
+        # create workers and start them
+        workers = [InserterProcess('Worker'+str(i), q, args) for i in range(args.workers)]
+        for w in workers:
             w.start()
-        q.join()
+            
+        # wait for all workers to end
+        done = False
+        while not done:
+            sleep(1)
+            done = True
+            for w in workers:
+                if w.is_alive():
+                    done = False
         
-        logger.info("All done!")
-
-        return 0
+        # check if all tasks were consumed
+        if q.empty():
+            logger.info("All done!")
+            return 0
+        else:
+            logger.error("Unfinished tasks found on queue, investigate log for worker error messages.")
+            return 2
     except KeyboardInterrupt:
         ### handle keyboard interrupt ###
         return 0
