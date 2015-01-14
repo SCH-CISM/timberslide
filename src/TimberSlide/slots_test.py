@@ -86,6 +86,7 @@ class SlotTest(unittest.TestCase):
         self.assertEquals(Slot("2014") - 1, Slot("2013"))
         self.assertEquals(Slot("201401") + 1, Slot("201402"))
         self.assertEquals(Slot("201401") - 1, Slot("201312"))
+        self.assertEquals(Slot("201412") + 1, Slot("201501"))
         self.assertEquals(Slot("20141201") + 1, Slot("20141202"))
         self.assertEquals(Slot("20141201") - 1, Slot("20141130"))
         self.assertEquals(Slot("2014120100") + 1, Slot("2014120101"))
@@ -102,6 +103,8 @@ class SlotTest(unittest.TestCase):
                           set([Slot("20140101"), Slot("20140102"), Slot("20140103")]))
         self.assertEquals(Slot("2014010100").rangeto("2014010102"), 
                           set([Slot("2014010100"), Slot("2014010101"), Slot("2014010102")]))
+        self.assertEquals(Slot("20141201").rangeto("20150101"), 
+                          set([Slot("201412"), Slot("20150101")]))
 
         # reverse order
         self.assertEquals(Slot("2016").rangeto("2014"), Slot("2014").rangeto("2016"))
