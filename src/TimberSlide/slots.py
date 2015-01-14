@@ -15,7 +15,7 @@ in YYYY, YYYYMM, YYYYMMDD or YYYYMMDDHH formats (UTC).
 class Slot(object):
     def __init__(self, slot):
         self.slot = slot
-        if not type(slot) is StringType or not slot.isdigit() or not len(slot) in [4, 6, 8, 10]: 
+        if not type(slot) is StringType or not slot.isdigit() or not len(slot) in [4, 6, 8, 10]:
             raise ValueError("slot must be a string with 4, 6, 8 or 10 digits only")
         params = {'tzinfo': pytz.utc, 'year': self.year(), 'month': 1, 'day': 1}
         if self.month() is not None:

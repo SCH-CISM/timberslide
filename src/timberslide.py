@@ -73,8 +73,9 @@ class InserterProcess(Process):
                 start = time()
                 count = insert(conn, self.args.table, TSVIterator(BZ2KeyIterator(k)))
                 end = time()
-                logger.info('Inserted {} rows from {} in {} seconds'.format(str(count), k.name, 
-                                                                             str(end-start)))
+                logger.info('Inserted {0} rows from {1} in {2} seconds'.format(str(count), 
+                                                                               k.name, 
+                                                                               str(end-start)))
         except Empty:
             logger.info('no more tasks to work on, closing connections')
             self.queue.close()
@@ -158,22 +159,22 @@ def main(argv=None): # IGNORE:C0111
         for s in args.slot:
             keys.update(repo.get_slot_keys(s))
         if len(keys) == 0:
-            logger.warning("No matching files found at {}, doing nothing...".format(repo.location))
+            logger.warning("No matching files found at {0}, doing nothing...".format(repo.location))
             return 0
         else:
             logger.info("Found "+str(len(keys))+" matching files at "+repo.location)
 
         # if password was not provided, get it interactively
         if args.password is None:
-            args.password = getpass('Enter password for [{}@{}]: '.format(args.user, args.server))
+            args.password = getpass('Enter password for [{0}@{1}]: '.format(args.user, args.server))
 
         # delete and create SQL table if necessary
         conn = connect(args.server, args.user, args.password, args.database, args.sslmode)
         conn.autocommit = True
         if args.overwrite:
-            logger.info('Dropping table \'{}\' if it exists...'.format(args.table))
+            logger.info('Dropping table \'{0}\' if it exists...'.format(args.table))
             droptable(conn, args.table)
-        logger.info('Creating table \'{}\' if it does not exist...'.format(args.table))
+        logger.info('Creating table \'{0}\' if it does not exist...'.format(args.table))
         createtable(conn, args.table)
         conn.close()
 

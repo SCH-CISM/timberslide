@@ -61,8 +61,8 @@ class TSVIterator(object):
                 try:
                     retval[i] = self.func[i](retval[i])
                 except Exception, e:
-                    logging.fatal('Error in row {} processing column {} with value {}'.format(str(self._row),
-                                                                                              self.colnames[i],
-                                                                                              retval[i]))
+                    logging.fatal('Error in row {0} processing column {1} with value {2}'.format(str(self._row),
+                                                                                                 self.colnames[i],
+                                                                                                 retval[i]))
                     raise e
         return retval

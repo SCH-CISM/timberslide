@@ -35,7 +35,7 @@ Returns a new database connection string to a PostgreSQL instance using psycopg2
 Assumes 'server' is in hostname[:port] format.
 '''
 def connection_string(server, user, password, database=None, sslmode=None):
-    connstr = 'user={} password={}'.format(escape(user), escape(password))
+    connstr = 'user={0} password={1}'.format(escape(user), escape(password))
     
     server = server.split(':')
     connstr = connstr + ' host=' + escape(server[0])
@@ -68,14 +68,14 @@ identifier such as a table or database name.
 '''
 def is_valid_id(name):
     if not _identifier.match(name):
-        raise ArgumentTypeError('\'{}\' is not a valid PostgreSQL identifier'.format(name))
+        raise ArgumentTypeError('\'{0}\' is not a valid PostgreSQL identifier'.format(name))
     else:
         return name
 
 
 # query to create table
 _create_table_query = '''
-    CREATE TABLE IF NOT EXISTS {} 
+    CREATE TABLE IF NOT EXISTS {0} 
     ( 
         agg_count integer,
         agg_first varchar(5),
@@ -154,7 +154,7 @@ def insert(conn, name, tsviter, chunksize=1024):
     cursor = conn.cursor()
     
     # build query strings based on column names found
-    qmain = "INSERT INTO {} ({}) VALUES "
+    qmain = "INSERT INTO {0} ({1}) VALUES "
     qval = None
     try:
         row = tsviter.next()
