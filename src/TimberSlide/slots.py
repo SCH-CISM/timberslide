@@ -164,7 +164,7 @@ class Slot(object):
                 month = month + 12
             while month > 12:
                 year = year + 1
-                month = month + 12
+                month = month - 12
             return Slot(format(year, "04")+format(month, "02"))
         elif len(self) == 8:
             dt = datetime(self.year(), self.month(), self.day()) + timedelta(days=other)
@@ -285,4 +285,3 @@ def mergeSlotSets(slotSetList):
     
     # we're done
     return allSlots
-    
