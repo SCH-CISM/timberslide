@@ -89,9 +89,11 @@ class SlotTest(unittest.TestCase):
         self.assertEquals(Slot("201412") + 1, Slot("201501"))
         self.assertEquals(Slot("20141201") + 1, Slot("20141202"))
         self.assertEquals(Slot("20141201") - 1, Slot("20141130"))
+        self.assertEquals(Slot("20141231") + 1, Slot("20150101"))
         self.assertEquals(Slot("2014120100") + 1, Slot("2014120101"))
         self.assertEquals(Slot("2014120100") - 1, Slot("2014113023"))
-
+        self.assertEquals(Slot("2014123123") + 1, Slot("2015010100"))
+        
     def testRangeTo(self):
         # basic tests
         self.assertEquals(Slot("2014").rangeto("2014"), set([Slot("2014")]))
