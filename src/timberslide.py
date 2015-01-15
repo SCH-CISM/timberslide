@@ -1,4 +1,4 @@
-#!/usr/local/bin/python2.7
+#!/usr/bin/env python
 # encoding: utf-8
 '''
 timberslide -- S3 to PostgreSQL batch load utility for Niddel-generated logs
@@ -26,9 +26,9 @@ from multiprocessing import Process, Queue, cpu_count
 from Queue import Empty
 
 __all__ = []
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 __date__ = '2014-12-23'
-__updated__ = '2015-01-12'
+__updated__ = '2015-01-15'
 
 DEBUG = 1
 TESTRUN = 0
