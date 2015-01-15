@@ -26,7 +26,7 @@ from multiprocessing import Process, Queue, cpu_count
 from Queue import Empty
 
 __all__ = []
-__version__ = "1.1.2"
+__version__ = "1.1.1"
 __date__ = '2014-12-23'
 __updated__ = '2015-01-15'
 
