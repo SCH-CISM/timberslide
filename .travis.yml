@@ -1,0 +1,18 @@
+language: python
+python:
+  - '2.6'
+  - '2.7'
+  - '3.4'
+install:
+  - pip install dependencies -r requirements.txt
+  - pip install coveralls
+script:
+  - coverage run --source=timberslide setup.py test
+after_success:
+  - coveralls
+notifications:
+  email:
+    on_success: change
+    on_failure: change
+  slack:
+    secure: DaG+hpiUkWEHqC95cstfIYrULJcclmllrQrXqkqs8OHtVJo026ncNXoqWC44kGu7RBOqe0c2gGtzKzh+tK8Fym6GAL5vCVcQ1s4XgxJc7gVSaA1a3E1MWEljj9WTKPTPEMlbLAp0vCTWdgSENPWgVLCTXmWYU2giIa3xGZkpMHA=
