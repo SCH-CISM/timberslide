@@ -37,25 +37,29 @@ PROFILE = 0
 logging.basicConfig(format='%(levelname)s %(asctime)s [%(processName)s] %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S', level=logging.ERROR)
 
+
 class CLIError(Exception):
     '''Generic exception to raise and log different fatal errors.'''
     def __init__(self, msg):
         super(CLIError).__init__(type(self))
         self.msg = "E: %s" % msg
+
     def __str__(self):
         return self.msg
+
     def __unicode__(self):
         return self.msg
-    
+
+
 # This class is a process that gets S3 prefix names from a queue and writes the
-# corresponding data to the database.    
+# corresponding data to the database.
 class InserterProcess(Process):
     def __init__(self, name, queue, args):
         super(InserterProcess, self).__init__(name=name)
         self.args = args
         self.queue = queue
         self.daemon = True
-        
+
     def run(self):
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
@@ -63,18 +67,18 @@ class InserterProcess(Process):
         conn = None
 
         try:
-            conn = connect(self.args.server, self.args.user, 
+            conn = connect(self.args.server, self.args.user,
                            self.args.password, self.args.database, self.args.sslmode)
             repo = S3Repository(self.args.repository, self.args.profile)
             logger.info('connections opened')
-    
+
             while True:
-                k = repo.get_prefix_key(self.queue.get(True,5))
+                k = repo.get_prefix_key(self.queue.get(True, 5))
                 start = time()
                 count = insert(conn, self.args.table, TSVIterator(BZ2KeyIterator(k)))
                 end = time()
-                logger.info('Inserted {0} rows from {1} in {2} seconds'.format(str(count), 
-                                                                               k.name, 
+                logger.info('Inserted {0} rows from {1} in {2} seconds'.format(str(count),
+                                                                               k.name,
                                                                                str(end-start)))
         except Empty:
             logger.info('no more tasks to work on, closing connections')
@@ -86,7 +90,7 @@ class InserterProcess(Process):
             logger.fatal(repr(e))
 
 
-def main(argv=None): # IGNORE:C0111
+def main(argv=None):  # IGNORE:C0111
     '''Command line options.'''
 
     if argv is None:
@@ -112,7 +116,7 @@ def main(argv=None): # IGNORE:C0111
     try:
         # Setup argument parser
         parser = ArgumentParser(description=program_license, formatter_class=ArgumentDefaultsHelpFormatter)
-        #parser.add_argument("-c", "--config", dest="config", help="path to the configuration file [default: %(default)s]", default="~/.timberslide")
+        # parser.add_argument("-c", "--config", dest="config", help="path to the configuration file [default: %(default)s]", default="~/.timberslide")
         parser.add_argument('-v', '--version', action='version', version=program_version_message)
         parser.add_argument('--profile', help='profile to use from the boto credentials file - see http://boto.readthedocs.org/en/latest/boto_config_tut.html#credentials')
         parser.add_argument('-r', '--repository', default='s3://log-inbox.elk.sch/niddel-aggregated/',
@@ -120,20 +124,20 @@ def main(argv=None): # IGNORE:C0111
         parser.add_argument('--region', default='us-west-2',
                             choices=['us-west-2', 'us-east-1'],
                             help='AWS region for repository location')
-        parser.add_argument('-s', '--server', default='localhost:5432', 
+        parser.add_argument('-s', '--server', default='localhost:5432',
                             help='PostgreSQL server host and port number as <host>[:<port>]')
-        parser.add_argument('-d', '--database', type=is_valid_id, default='postgres', 
+        parser.add_argument('-d', '--database', type=is_valid_id, default='postgres',
                             help='PostgreSQL database')
         parser.add_argument('-u', '--user', default='timberslide', help='PostgreSQL user name')
         parser.add_argument('-p', '--password', required=False,
                             help='PostgreSQL user password, if missing will be obtained interactively')
         parser.add_argument('--sslmode', default='verify-full',
-                            choices=['disable', 'allow', 'prefer', 'require', 'verify-ca', 
+                            choices=['disable', 'allow', 'prefer', 'require', 'verify-ca',
                                      'verify-full'],
                             help='value to use for the sslmode PostgreSQL connection string parameter')
-        parser.add_argument('-t', '--table', type=is_valid_id, default='logs', 
+        parser.add_argument('-t', '--table', type=is_valid_id, default='logs',
                             help='PostgreSQL table name to write to')
-        parser.add_argument('-o', '--overwrite', action='store_true', 
+        parser.add_argument('-o', '--overwrite', action='store_true',
                             help='if true, will delete any pre-existing table and create new prior to insertion')
         try:
             cpus = cpu_count()
@@ -141,22 +145,22 @@ def main(argv=None): # IGNORE:C0111
             cpus = 2
         parser.add_argument('-w', '--workers', type=int, default=cpus,
                             help='number of worker processes to use')
-        parser.add_argument('slot', nargs='+', 
+        parser.add_argument('slot', nargs='+',
                             help='time slots or ranges of time slots to load, either <slot> or <slot>:<slot> for an inclusive range, <slot>: for all slots above and :<slot> for all slots below the provided one; each slot should be in YYYY, YYYYMM, YYYYMMDD or YYYYMMDDHH format (UTC)')
 
         # Process arguments
         args = parser.parse_args()
 
-        # set up logger        
+        # set up logger
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
 
         # merge slots and give feedback
         repo = S3Repository(args.repository, args.profile)
         args.slot = mergeSlotSets([parseSlotRange(s, repo) for s in args.slot])
-        logger.info("Slots to process: " + ", ".join(sorted([str(s) for s in args.slot], 
+        logger.info("Slots to process: " + ", ".join(sorted([str(s) for s in args.slot],
                                                             reverse=True)))
-        
+
         # find out all S3 keys to process
         keys = set()
         for s in args.slot:
@@ -190,7 +194,7 @@ def main(argv=None): # IGNORE:C0111
         workers = [InserterProcess('Worker'+str(i), q, args) for i in range(args.workers)]
         for w in workers:
             w.start()
-            
+
         # wait for all workers to end
         done = False
         while not done:
@@ -199,7 +203,7 @@ def main(argv=None): # IGNORE:C0111
             for w in workers:
                 if w.is_alive():
                     done = False
-        
+
         # check if all tasks were consumed
         if q.empty():
             logger.info("All done!")
@@ -208,7 +212,7 @@ def main(argv=None): # IGNORE:C0111
             logger.error("Unfinished tasks found on queue, investigate log for worker error messages.")
             return 2
     except KeyboardInterrupt:
-        ### handle keyboard interrupt ###
+        # handle keyboard interrupt
         return 0
     except Exception, e:
         if DEBUG or TESTRUN:
@@ -219,9 +223,9 @@ def main(argv=None): # IGNORE:C0111
         return 2
 
 if __name__ == "__main__":
-#     if DEBUG:
-#         sys.argv.append("-h")
-#         sys.argv.append("-v")
+    if DEBUG:
+        sys.argv.append("-h")
+        sys.argv.append("-v")
     if TESTRUN:
         import doctest
         doctest.testmod()

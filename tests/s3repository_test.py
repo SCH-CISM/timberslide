@@ -9,31 +9,33 @@ from timberslide.slots import Slot
 from bz2 import BZ2Compressor
 from random import randrange
 
+
 # Streaming compression class that simulates the 'read' behavior of an S3 key that we use
 # to test the BZ2KeyIterator class. It purposedfully tries to split the data in weird ways
-# so we can simulate the behavior of a file that is a lot larger than the buffer we use. 
+# so we can simulate the behavior of a file that is a lot larger than the buffer we use.
 class _S3RepositoryTestKey(object):
     def __init__(self, text):
         self.text = text
         self.comp = BZ2Compressor()
-        
+
     def read(self, size):
         while len(self.text) > 0:
             if min(size, len(self.text)) == 1:
                 numbytes = 1
             else:
-                numbytes = randrange(1,min(size, len(self.text)))
+                numbytes = randrange(1, min(size, len(self.text)))
             retval = self.comp.compress(self.text[0:numbytes])
             self.text = self.text[numbytes:len(self.text)]
             if retval is not None:
                 return retval
-        
+
         if self.comp is None:
             return None
         else:
             retval = self.comp.flush()
             self.comp = None
             return retval
+
 
 class S3RepositoryTest(unittest.TestCase):
     def testInit(self):
@@ -61,5 +63,5 @@ class S3RepositoryTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'Test.testName']
+    # import sys;sys.argv = ['', 'Test.testName']
     unittest.main()

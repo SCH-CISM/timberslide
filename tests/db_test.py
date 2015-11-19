@@ -7,6 +7,7 @@ import unittest
 from timberslide.db import is_valid_id, escape, connection_string
 from argparse import ArgumentTypeError
 
+
 class Test(unittest.TestCase):
     def testValidTable(self):
         self.assertEquals(is_valid_id('a'), 'a')
@@ -18,13 +19,13 @@ class Test(unittest.TestCase):
             is_valid_id('')
         with self.assertRaises(ArgumentTypeError):
             is_valid_id('table;EVILINJECT')
-        
+
     def testEscape(self):
         self.assertEquals(escape(''), '\'\'')
         self.assertEquals(escape('blah'), '\'blah\'')
         self.assertEquals(escape('\'blah\''), '\'\\\'blah\\\'\'')
         self.assertEquals(escape('bl\\ah'), '\'bl\\\\ah\'')
-        
+
     def testConnectionString(self):
         self.assertEquals(connection_string('localhost:65000', 'username', 'password'),
                           "user='username' password='password' host='localhost' port=65000")
@@ -34,5 +35,5 @@ class Test(unittest.TestCase):
                           "user='username' password='password' host='localhost' port=65000 dbname='database' sslmode='sslmode'")
 
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'Test.testName']
+    # import sys;sys.argv = ['', 'Test.testName']
     unittest.main()

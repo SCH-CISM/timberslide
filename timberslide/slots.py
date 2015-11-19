@@ -8,10 +8,13 @@ from datetime import datetime, timedelta
 import pytz
 from calendar import monthrange
 
+
 '''
 This class represents a time slot that might contain files. It is represented as a string
 in YYYY, YYYYMM, YYYYMMDD or YYYYMMDDHH formats (UTC).
 '''
+
+
 class Slot(object):
     def __init__(self, slot):
         self.slot = slot
@@ -25,7 +28,7 @@ class Slot(object):
         if self.hour() is not None:
             params['hour'] = self.hour()
         datetime(**params)
-        
+
     def year(self):
         if self.slot is None:
             return None
@@ -51,7 +54,7 @@ class Slot(object):
             return None
         else:
             return Slot(self.slot[0:len(self)-2])
-        
+
     def parents(self):
         retval = set()
         par = self.parent()
@@ -59,7 +62,7 @@ class Slot(object):
             retval.add(par)
             par = par.parent()
         return retval
-    
+
     def children_start(self):
         if len(self) == 4 or len(self) == 6:
             return Slot(self.slot + "01")
@@ -67,7 +70,7 @@ class Slot(object):
             return Slot(self.slot + "00")
         else:
             return None
-    
+
     def children_end(self):
         if len(self) == 4:
             return Slot(self.slot + "12")
@@ -77,20 +80,20 @@ class Slot(object):
             return Slot(self.slot + "23")
         else:
             return None
-        
+
     def children(self):
         if len(self) == 10:
             return None
         start = self.children_start().slot
         end = self.children_end().slot
-        return set([Slot(self.slot+format(x, "02")) 
+        return set([Slot(self.slot+format(x, "02"))
                     for x in range(int(start[len(start)-2:len(start)]),
                                    int(end[len(end)-2:len(end)])+1)])
-        
+
     def rangeto(self, other):
         if not isinstance(other, Slot):
             other = Slot(other)
-        
+
         # make sizes equal, and check if proper order was used
         start = self
         end = other
@@ -100,15 +103,15 @@ class Slot(object):
             end = end.children_end()
         if start > end:
             return other.rangeto(self)
-        
+
         return _rangeto(start, end)
-        
+
     def __repr__(self):
         return "Slot(\""+self.slot+"\")"
-    
+
     def __str__(self):
         return self.slot
-        
+
     def __lt__(self, other):
         if not isinstance(other, Slot):
             raise TypeError("another Slot instance expected")
@@ -120,7 +123,7 @@ class Slot(object):
             raise TypeError("another Slot instance expected")
 
         return self.slot <= other.slot
-        
+
     def __gt__(self, other):
         if not isinstance(other, Slot):
             raise TypeError("another Slot instance expected")
@@ -150,7 +153,7 @@ class Slot(object):
 
     def __hash__(self):
         return self.slot.__hash__()
-    
+
     def __add__(self, other):
         if not type(other) is IntType:
             raise TypeError("slots should be added to integers")
@@ -175,12 +178,14 @@ class Slot(object):
 
     def __sub__(self, other):
         return self.__add__(-other)
- 
+
 '''
-Called internally by Slot.rangeto to handle the recursive resolution. 
+Called internally by Slot.rangeto to handle the recursive resolution.
 
 Expects two Slot instances as parameters, and returns a set of Slot instances.
 '''
+
+
 def _rangeto(start, end):
     # trivial cases
     if start == end:
@@ -189,7 +194,7 @@ def _rangeto(start, end):
         return set()
     if len(start) == 4:
         return set([Slot(format(i, "04")) for i in range(start.year(), end.year()+1)])
-    
+
     # now handle more complex cases
     startpar = start.parent()
     endpar = end.parent()
@@ -202,14 +207,14 @@ def _rangeto(start, end):
             # same parent, doesn't cover all of it so we range through last component
             return set([Slot(startpar.slot+format(i, "02"))
                         for i in range(int(start.slot[len(start.slot)-2:len(start.slot)]),
-                                   int(end.slot[len(end.slot)-2:len(end.slot)])+1)])
+                                       int(end.slot[len(end.slot)-2:len(end.slot)])+1)])
     else:
         # parents are different, recurse
         if startpar+1 > endpar-1:
-            return (start.rangeto(startpar.children_end()) 
+            return (start.rangeto(startpar.children_end())
                     | endpar.children_start().rangeto(end))
         else:
-            return (start.rangeto(startpar.children_end()) 
+            return (start.rangeto(startpar.children_end())
                     | (startpar+1).rangeto(endpar-1)
                     | endpar.children_start().rangeto(end))
 
@@ -220,6 +225,8 @@ instance.
 
 Returns a set of Slot instances.
 '''
+
+
 def parseSlotRange(text, repo):
     text = text.split(':')
     if len(text) == 1:
@@ -250,12 +257,14 @@ of Slot instances.
 The processing will ensure that the slots with the smallest length possible are used, and that
 slots contained by other slots will be removed.
 '''
+
+
 def mergeSlotSets(slotSetList):
     # merge entries
     allSlots = set()
     for slotSet in slotSetList:
         allSlots.update(slotSet)
-        
+
     # remove entries with parents already in the list
     redundant = set()
     for slot in allSlots:
@@ -263,8 +272,8 @@ def mergeSlotSets(slotSetList):
             redundant.add(slot)
     allSlots.difference_update(redundant)
     redundant.clear()
-    
-    # consolidate entries by using parent if all of its children 
+
+    # consolidate entries by using parent if all of its children
     # are present
     parents = set()
     done = False
@@ -272,7 +281,7 @@ def mergeSlotSets(slotSetList):
         done = True
         for slot in allSlots:
             par = slot.parent()
-            if par is not None and not par in parents:
+            if par is not None and par not in parents:
                 siblings = par.children()
                 if siblings.issubset(allSlots):
                     done = False
@@ -282,6 +291,6 @@ def mergeSlotSets(slotSetList):
         redundant.clear()
         allSlots.update(parents)
         parents.clear()
-    
+
     # we're done
     return allSlots

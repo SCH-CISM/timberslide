@@ -15,12 +15,15 @@ _bucketregex = compile("^s3://(?P<bucket>[^/]+)/(?P<prefix>.*?)/?$")
 _yregex = compile("/(?P<val>[0-9]{4})/$")
 _mdhregex = compile("/(?P<val>[0-9]{2})/$")
 
+
 '''
 This class encapsulates access to an S3 bucket and prefix where data files are stored
 using the <prefix>/<YYYY>/<MM>/<DD>/<HH>/ prefixes according to the slot.
 
 It will allow all S3 Key objects associated with a Slot set to be easily obtained.
 '''
+
+
 class S3Repository(object):
     def __init__(self, location, profile=None, region='us-west-2'):
         m = _bucketregex.match(location)
@@ -35,50 +38,50 @@ class S3Repository(object):
         self._maxslot = None
         self._conn = None
         self._bucket = None
-    
+
     def _open(self):
         if self._conn is None:
             self._conn = connect_to_region(self.region, calling_format=OrdinaryCallingFormat())
             self._bucket = self._conn.get_bucket(self.bucket, validate=False)
-    
+
     # Returns the earliest slot for which there is data in the repository,
     # in YYYYMMDDHH format.
     def get_min_slot(self):
         if self._minslot is None:
             self._open()
-            
+
             # find smallest year
-            year = [int(_yregex.search(s.name).group('val')) 
-                       for s in self._bucket.list(self.prefix, '/')]
+            year = [int(_yregex.search(s.name).group('val'))
+                    for s in self._bucket.list(self.prefix, '/')]
             if len(year) == 0:
                 raise Exception("repository empty or not consistent (year)")
             year = format(min(year), "04")
-            
+
             # find smallest month
-            month = [int(_mdhregex.search(s.name).group('val')) 
+            month = [int(_mdhregex.search(s.name).group('val'))
                      for s in self._bucket.list(self.prefix+year+'/', '/')]
             if len(month) == 0:
                 raise Exception("repository empty or not consistent (month)")
             month = format(min(month), "02")
 
             # find smallest day
-            day = [int(_mdhregex.search(s.name).group('val')) 
+            day = [int(_mdhregex.search(s.name).group('val'))
                    for s in self._bucket.list(self.prefix+year+'/'+month+'/', '/')]
             if len(day) == 0:
                 raise Exception("repository empty or not consistent (day)")
             day = format(min(day), "02")
-            
+
             # find smallest hour
-            hour = [int(_mdhregex.search(s.name).group('val')) 
+            hour = [int(_mdhregex.search(s.name).group('val'))
                     for s in self._bucket.list(self.prefix+year+'/'+month+'/'+day+'/', '/')]
             if len(hour) == 0:
                 raise Exception("repository empty or not consistent (hour)")
             hour = format(min(hour), "02")
-            
+
             self._minslot = Slot(year+month+day+hour)
             logging.debug("Smallest slot in repository is "+str(self._minslot))
         return self._minslot
-    
+
     # Returns the latest slot for which there is data in the repository,
     # in YYYYMMDDHH format.
     def get_max_slot(self):
@@ -86,37 +89,37 @@ class S3Repository(object):
             self._open()
 
             # find smallest year
-            year = [int(_yregex.search(s.name).group('val')) 
-                       for s in self._bucket.list(self.prefix, '/')]
+            year = [int(_yregex.search(s.name).group('val'))
+                    for s in self._bucket.list(self.prefix, '/')]
             if len(year) == 0:
                 raise Exception("repository empty or not consistent (year)")
             year = format(max(year), "04")
-            
+
             # find smallest month
-            month = [int(_mdhregex.search(s.name).group('val')) 
+            month = [int(_mdhregex.search(s.name).group('val'))
                      for s in self._bucket.list(self.prefix+year+'/', '/')]
             if len(month) == 0:
                 raise Exception("repository empty or not consistent (month)")
             month = format(max(month), "02")
 
             # find smallest day
-            day = [int(_mdhregex.search(s.name).group('val')) 
+            day = [int(_mdhregex.search(s.name).group('val'))
                    for s in self._bucket.list(self.prefix+year+'/'+month+'/', '/')]
             if len(day) == 0:
                 raise Exception("repository empty or not consistent (day)")
             day = format(max(day), "02")
-            
+
             # find smallest hour
-            hour = [int(_mdhregex.search(s.name).group('val')) 
+            hour = [int(_mdhregex.search(s.name).group('val'))
                     for s in self._bucket.list(self.prefix+year+'/'+month+'/'+day+'/', '/')]
             if len(hour) == 0:
                 raise Exception("repository empty or not consistent (hour)")
             hour = format(max(hour), "02")
-            
+
             self._maxslot = Slot(year+month+day+hour)
             logging.debug("Biggest slot in repository is "+str(self._maxslot))
         return self._maxslot
-    
+
     # Returns the S3 prefix associated with a given slot.
     def get_slot_prefix(self, slot):
         retval = self.prefix + format(slot.year(), "04") + '/'
@@ -129,9 +132,9 @@ class S3Repository(object):
         if slot.hour() is None:
             return retval
         return retval + format(slot.hour(), "02") + '/'
-    
+
     # Returns a list of boto S3 Key class instances associated with a given slot.
-    def get_slot_keys(self, slots):            
+    def get_slot_keys(self, slots):
         self._open()
         retval = set()
         if isinstance(slots, Slot):
@@ -140,16 +143,19 @@ class S3Repository(object):
             for key in self._bucket.list(self.get_slot_prefix(slot)):
                 retval.add(key)
         return list(retval)
-    
+
     # Returns a boto S3 Key class instance for a given prefix.
     def get_prefix_key(self, prefix):
         self._open()
         return self._bucket.get_key(prefix)
 
+
 '''
-This class is an iterator (https://docs.python.org/2/glossary.html#term-iterator) 
+This class is an iterator (https://docs.python.org/2/glossary.html#term-iterator)
 over the lines of an S3 Key object that also decompresses the contents using BZ2.
 '''
+
+
 class BZ2KeyIterator(object):
     def __init__(self, key, bufsize=100*1024):
         self.key = key
@@ -157,10 +163,10 @@ class BZ2KeyIterator(object):
         self._decomp = BZ2Decompressor()
         self._lines = []
         self._done = False
-        
+
     def __iter__(self):
         return self
-    
+
     def next(self):
         while True:
             if len(self._lines) > 1:
@@ -175,7 +181,7 @@ class BZ2KeyIterator(object):
                     try:
                         lines = self._decomp.decompress(chunk).split('\n')
                         if len(self._lines) > 0:
-                            self._lines[len(self._lines)-1] = self._lines[len(self._lines)-1] + lines.pop(0) 
+                            self._lines[len(self._lines)-1] = self._lines[len(self._lines)-1] + lines.pop(0)
                         for l in lines:
                             self._lines.append(l)
                     except EOFError:

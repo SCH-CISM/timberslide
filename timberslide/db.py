@@ -13,12 +13,15 @@ import logging
 # used by is_valid_id
 _identifier = compile('^[a-z][a-z0-9_]*$', IGNORECASE)
 
+
 '''
-Returns a given text value in quoted and escaped format for use as a value in a libpq 
-connection string. 
+Returns a given text value in quoted and escaped format for use as a value in a libpq
+connection string.
 
 See http://www.postgresql.org/docs/current/static/libpq-connect.html#LIBPQ-CONNSTRING
 '''
+
+
 def escape(text):
     retval = '\''
     for c in text:
@@ -30,13 +33,16 @@ def escape(text):
             retval = retval + c
     return retval + '\''
 
+
 '''
 Returns a new database connection string to a PostgreSQL instance using psycopg2.
 Assumes 'server' is in hostname[:port] format.
 '''
+
+
 def connection_string(server, user, password, database=None, sslmode=None):
     connstr = 'user={0} password={1}'.format(escape(user), escape(password))
-    
+
     server = server.split(':')
     connstr = connstr + ' host=' + escape(server[0])
     if len(server) == 2:
@@ -46,26 +52,32 @@ def connection_string(server, user, password, database=None, sslmode=None):
         connstr = connstr + ' port=' + str(port)
     elif len(server) != 1:
         raise ValueError('server must be in hostname[:port] format')
-    
+
     if database is not None:
         connstr = connstr + ' dbname=' + escape(database)
 
     if sslmode is not None:
         connstr = connstr + ' sslmode=' + escape(sslmode)
-    
+
     return connstr
+
 
 '''
 Returns a new database connection to a PostgreSQL instance using psycopg2.
 Assumes 'server' is in hostname[:port] format.
 '''
+
+
 def connect(server, user, password, database=None, sslmode=None):
     return psycopg2.connect(connection_string(server, user, password, database, sslmode))
+
 
 '''
 Function meant to be used as an argparse type that will validate a postgres
 identifier such as a table or database name.
 '''
+
+
 def is_valid_id(name):
     if not _identifier.match(name):
         raise ArgumentTypeError('\'{0}\' is not a valid PostgreSQL identifier'.format(name))
@@ -75,8 +87,8 @@ def is_valid_id(name):
 
 # query to create table
 _create_table_query = '''
-    CREATE TABLE IF NOT EXISTS {0} 
-    ( 
+    CREATE TABLE IF NOT EXISTS {0}
+    (
         agg_count integer,
         agg_first varchar(5),
         agg_last varchar(5),
@@ -130,36 +142,46 @@ _create_table_query = '''
     );
 '''
 
+
 '''
 Drops a table of the given name, if it exists, using the given connection
 '''
+
+
 def droptable(conn, name):
     conn.cursor().execute("DROP TABLE IF EXISTS " + name + ";")
+
 
 '''
 Creates a table of the given name, optionally using a given query
 '''
+
+
 def createtable(conn, name, query=_create_table_query):
     conn.cursor().execute(query.format(name))
 
+
 def _column_sub_repl(m):
     return '_' * len(m.group(0))
+
 
 '''
 Loops through a TSV Iterator and writes each entry as a new row in the given table
 
 Inspired by this: http://stackoverflow.com/questions/8134602/psycopg2-insert-multiple-rows-with-one-query
-''' 
+'''
+
+
 def insert(conn, name, tsviter, chunksize=1024):
     cursor = conn.cursor()
-    
+
     # build query strings based on column names found
     qmain = "INSERT INTO {0} ({1}) VALUES "
     qval = None
     try:
         row = tsviter.next()
-        sqlcolnames = [is_valid_id(sub('[^0-9a-zA-Z_]+', _column_sub_repl, s)) 
-                           for s in tsviter.colnames]
+        sqlcolnames = [is_valid_id(sub('[^0-9a-zA-Z_]+', _column_sub_repl, s))
+                       for s in tsviter.colnames]
         qmain = qmain.format(name, ", ".join(sqlcolnames))
         qval = "(" + ", ".join(["%s"] * len(tsviter.colnames)) + ")"
     except StopIteration:
@@ -173,7 +195,7 @@ def insert(conn, name, tsviter, chunksize=1024):
         while True:
             for i in range(chunksize):
                 chunk.append(tsviter.next())
-            
+
             cursor.execute(qmain + ",".join([cursor.mogrify(qval, x) for x in chunk]) + ";")
             count = count + len(chunk)
             chunk = []
