@@ -4,8 +4,11 @@ python:
   - '2.7'
   - '3.4'
 install:
-  - pip install dependencies -r requirements.txt
+  - pip install -r requirements.txt
+  - pip install flake8
   - pip install coveralls
+before_script:
+  - flake8 .
 script:
   - coverage run --source=timberslide setup.py test
 after_success:
