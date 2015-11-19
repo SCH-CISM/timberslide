@@ -6,6 +6,10 @@ Created on 31/12/2014
 
 import csv
 import logging
+# compatability shim for python3
+import sys
+if sys.version_info > (3,):
+    long = int
 
 # Default transformations to be applied to fields read from TSV files
 _default_func = {'net.src.port': int, 'net.dst.port': int, 'net.blocked': bool,
@@ -62,7 +66,7 @@ class TSVIterator(object):
             elif self.func[i] is not None:
                 try:
                     retval[i] = self.func[i](retval[i])
-                except Exception, e:
+                except Exception as e:
                     logging.fatal('Error in row {0} processing column {1} with value {2}'.format(str(self._row),
                                                                                                  self.colnames[i],
                                                                                                  retval[i]))

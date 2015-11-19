@@ -5,7 +5,11 @@ Created on 31/12/2014
 '''
 import unittest
 from timberslide.parse import TSVIterator
-from StringIO import StringIO
+# Python 3 shim
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 
 class ParseTest(unittest.TestCase):

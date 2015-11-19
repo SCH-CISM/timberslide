@@ -86,7 +86,7 @@ class InserterProcess(Process):
             if conn:
                 conn.close()
             logger.info('connections closed')
-        except Exception, e:
+        except Exception as e:
             logger.fatal(repr(e))
 
 
@@ -214,7 +214,7 @@ def main(argv=None):  # IGNORE:C0111
     except KeyboardInterrupt:
         # handle keyboard interrupt
         return 0
-    except Exception, e:
+    except Exception as e:
         if DEBUG or TESTRUN:
             raise(e)
         indent = len(program_name) * " "

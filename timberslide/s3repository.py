@@ -8,7 +8,7 @@ from re import compile
 from boto.s3 import connect_to_region
 from boto.s3.connection import OrdinaryCallingFormat
 from bz2 import BZ2Decompressor
-from slots import Slot
+from timberslide.slots import Slot
 import logging
 
 _bucketregex = compile("^s3://(?P<bucket>[^/]+)/(?P<prefix>.*?)/?$")
