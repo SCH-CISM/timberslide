@@ -12,7 +12,7 @@ config = {
     'version': '0.1',
     'install_requires': ['nose'],
     'packages': ['timberslide'],
-    'scripts': ['bin/timberslide.py'],
+    'scripts': ['bin/timberscript'],
     'name': 'timberslide',
     'test_suite': 'nose.collector',
     'tests_require': ['nose']

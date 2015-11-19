@@ -18,10 +18,10 @@ import logging
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from getpass import getpass
 from time import time, sleep
-from TimberSlide.slots import parseSlotRange, mergeSlotSets
-from TimberSlide.s3repository import S3Repository, BZ2KeyIterator
-from TimberSlide.db import connect, droptable, is_valid_id, createtable, insert
-from TimberSlide.parse import TSVIterator
+from timberslide.slots import parseSlotRange, mergeSlotSets
+from timberslide.s3repository import S3Repository, BZ2KeyIterator
+from timberslide.db import connect, droptable, is_valid_id, createtable, insert
+from timberslide.parse import TSVIterator
 from multiprocessing import Process, Queue, cpu_count
 from Queue import Empty
 
