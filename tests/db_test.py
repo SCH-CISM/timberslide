@@ -4,7 +4,7 @@ Created on 02/01/2015
 @author: asieira
 '''
 import unittest
-from db import is_valid_id, escape, connection_string
+from timberslide.db import is_valid_id, escape, connection_string
 from argparse import ArgumentTypeError
 
 class Test(unittest.TestCase):

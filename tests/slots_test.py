@@ -4,9 +4,9 @@ Created on 30/12/2014
 @author: asieira
 '''
 import unittest
-from slots import Slot
-from s3repository import S3Repository
-from TimberSlide.slots import parseSlotRange
+from timberslide.slots import Slot
+from timberslide.s3repository import S3Repository
+from timberslide..slots import parseSlotRange
 
 class DummyS3Repository(S3Repository):
     def __init__(self, location):

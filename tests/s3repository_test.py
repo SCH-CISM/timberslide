@@ -4,8 +4,8 @@ Created on 30/12/2014
 @author: asieira
 '''
 import unittest
-from TimberSlide.s3repository import S3Repository, BZ2KeyIterator
-from slots import Slot
+from timberslide.s3repository import S3Repository, BZ2KeyIterator
+from timberslide.slots import Slot
 from bz2 import BZ2Compressor
 from random import randrange
 

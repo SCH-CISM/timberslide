@@ -4,7 +4,7 @@ Created on 31/12/2014
 @author: asieira
 '''
 import unittest
-from parse import TSVIterator
+from timberslide.parse import TSVIterator
 from StringIO import StringIO
 
 class ParseTest(unittest.TestCase):
