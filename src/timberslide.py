@@ -117,6 +117,9 @@ def main(argv=None): # IGNORE:C0111
         parser.add_argument('--profile', help='profile to use from the boto credentials file - see http://boto.readthedocs.org/en/latest/boto_config_tut.html#credentials')
         parser.add_argument('-r', '--repository', default='s3://log-inbox.elk.sch/niddel-aggregated/',
                             help='S3 directory where the data is located')
+        parser.add_argument('--region', default='us-west-2',
+                            choices=['us-west-2', 'us-east-1'],
+                            help='AWS region for repository location')
         parser.add_argument('-s', '--server', default='localhost:5432', 
                             help='PostgreSQL server host and port number as <host>[:<port>]')
         parser.add_argument('-d', '--database', type=is_valid_id, default='postgres', 
