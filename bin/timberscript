@@ -26,11 +26,11 @@ from multiprocessing import Process, Queue, cpu_count
 from Queue import Empty
 
 __all__ = []
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 __date__ = '2014-12-23'
-__updated__ = '2015-01-15'
+__updated__ = '2015-11-23'
 
-DEBUG = 1
+DEBUG = 0
 TESTRUN = 0
 PROFILE = 0
 
